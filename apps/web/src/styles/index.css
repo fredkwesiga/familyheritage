@@ -1,0 +1,144 @@
+@import 'tailwindcss';
+
+@import '@fontsource-variable/fraunces';
+@import '@fontsource-variable/inter';
+
+/* ---------------------------------------------------------------------------
+   Design tokens.
+
+   The brief was explicit: this must not look like a SaaS dashboard. Three
+   decisions do most of that work and they all live here.
+
+   1. No pure white, no pure black. The background is warm bone; text is a warm
+      ink. Pure #fff / #000 is what makes an interface read as "software".
+   2. A serif (Fraunces) carries names, life dates and story prose. A sans
+      (Inter) carries UI chrome only. Names of ancestors deserve a serif.
+   3. One accent (deep green) plus one warm secondary (terracotta). Colours are
+      in oklch so lightness stays perceptually even across the palette.
+
+   Variable names follow the shadcn/ui convention so `npx shadcn@latest add ...`
+   drops in components that are already on-theme.
+--------------------------------------------------------------------------- */
+
+:root {
+  --radius: 0.625rem;
+
+  --background: oklch(0.978 0.008 85);
+  --foreground: oklch(0.26 0.018 60);
+
+  --card: oklch(0.995 0.005 85);
+  --card-foreground: oklch(0.26 0.018 60);
+
+  --popover: oklch(0.995 0.005 85);
+  --popover-foreground: oklch(0.26 0.018 60);
+
+  --primary: oklch(0.42 0.062 155);
+  --primary-foreground: oklch(0.98 0.008 85);
+
+  --secondary: oklch(0.94 0.014 82);
+  --secondary-foreground: oklch(0.32 0.02 60);
+
+  --muted: oklch(0.945 0.012 84);
+  --muted-foreground: oklch(0.52 0.018 62);
+
+  --accent: oklch(0.62 0.115 45);
+  --accent-foreground: oklch(0.985 0.006 85);
+
+  --destructive: oklch(0.53 0.16 27);
+  --destructive-foreground: oklch(0.985 0.006 85);
+
+  --border: oklch(0.9 0.014 82);
+  --input: oklch(0.9 0.014 82);
+  --ring: oklch(0.42 0.062 155);
+}
+
+.dark {
+  --background: oklch(0.19 0.012 65);
+  --foreground: oklch(0.94 0.01 85);
+
+  --card: oklch(0.23 0.014 65);
+  --card-foreground: oklch(0.94 0.01 85);
+
+  --popover: oklch(0.23 0.014 65);
+  --popover-foreground: oklch(0.94 0.01 85);
+
+  --primary: oklch(0.68 0.075 155);
+  --primary-foreground: oklch(0.18 0.012 65);
+
+  --secondary: oklch(0.28 0.016 65);
+  --secondary-foreground: oklch(0.94 0.01 85);
+
+  --muted: oklch(0.28 0.016 65);
+  --muted-foreground: oklch(0.7 0.014 75);
+
+  --accent: oklch(0.68 0.11 48);
+  --accent-foreground: oklch(0.18 0.012 65);
+
+  --destructive: oklch(0.62 0.15 27);
+  --destructive-foreground: oklch(0.98 0.006 85);
+
+  --border: oklch(0.32 0.016 65);
+  --input: oklch(0.32 0.016 65);
+  --ring: oklch(0.68 0.075 155);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --font-sans: 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
+  --font-serif: 'Fraunces Variable', ui-serif, Georgia, Cambria, serif;
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+    font-feature-settings:
+      'liga' 1,
+      'calt' 1;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Deceased members are rendered grayscale via this class, never by writing a
+     new image. Applied in Phase 10; defined here so the rule has one home. */
+  .photo-memoriam {
+    filter: grayscale(100%);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}

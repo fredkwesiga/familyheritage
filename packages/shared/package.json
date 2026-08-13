@@ -1,0 +1,31 @@
+{
+  "name": "@fh/shared",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Contracts shared between the API and the web client.",
+  "type": "commonjs",
+  "main": "./dist/cjs/index.js",
+  "module": "./dist/esm/index.js",
+  "types": "./dist/cjs/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/cjs/index.d.ts",
+      "import": "./dist/esm/index.js",
+      "require": "./dist/cjs/index.js"
+    }
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "npm run build:cjs && npm run build:esm",
+    "build:cjs": "tsc -p tsconfig.cjs.json",
+    "build:esm": "tsc -p tsconfig.esm.json && node ./scripts/postbuild-esm.mjs",
+    "dev": "tsc -p tsconfig.cjs.json --watch --preserveWatchOutput",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.2"
+  }
+}

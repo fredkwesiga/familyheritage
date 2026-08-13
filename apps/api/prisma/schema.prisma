@@ -1,0 +1,16 @@
+// Family Heritage - Prisma schema
+//
+// PHASE 1: connection only. The domain model (User, Family, FamilyMembership,
+// Member, ParentChild, Partnership, Photo, PhotoSubject, Story, StorySubject,
+// Event, Invitation, AuditLog) lands in PHASE 2.
+//
+// Deliberately absent, and staying absent for V1: pgvector, embeddings.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}

@@ -1,0 +1,32 @@
+# dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# builds
+dist/
+build/
+*.tsbuildinfo
+
+# environment - NEVER commit real secrets
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# prisma
+apps/api/prisma/*.db
+
+# logs
+*.log
+npm-debug.log*
+logs/
+
+# editors / os
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# test output
+coverage/
