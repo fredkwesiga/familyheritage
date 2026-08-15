@@ -1,16 +1,19 @@
-import { Outlet } from 'react-router-dom';
+import { Link, Outlet } from 'react-router-dom';
+import { UserMenu } from '@/features/auth/user-menu';
 
 export function RootLayout() {
   return (
     <div className="flex min-h-dvh flex-col bg-background">
       <header className="border-b border-border/60">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-5">
-          <span className="font-serif text-lg tracking-tight">Family Heritage</span>
-          <span className="text-xs uppercase tracking-[0.18em] text-muted-foreground">v0.1</span>
+          <Link to="/" className="font-serif text-lg tracking-tight">
+            Family Heritage
+          </Link>
+          <UserMenu />
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-5xl flex-1 px-6 py-12 md:py-20">
+      <main className="mx-auto w-full max-w-5xl flex-1 px-6 py-12 md:py-16">
         <Outlet />
       </main>
 
