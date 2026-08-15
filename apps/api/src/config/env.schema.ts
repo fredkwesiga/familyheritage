@@ -23,6 +23,22 @@ export const envSchema = z.object({
 
   DATABASE_URL: z.string().min(1, 'DATABASE_URL is required'),
 
+  /// Public base URL of the WEB client. Magic-link and password-reset emails
+  /// point here, so it must be the address the user's browser can actually reach.
+  APP_URL: z.string().url().default('http://localhost:5173'),
+
+  /// How long a session cookie stays valid. 30 days keeps older relatives from
+  /// being logged out between visits, which is a real contribution killer.
+  SESSION_TTL_DAYS: z.coerce.number().int().positive().max(365).default(30),
+
+  /// Magic links and reset links. Short on purpose - they arrive in an inbox.
+  AUTH_TOKEN_TTL_MINUTES: z.coerce.number().int().positive().max(1440).default(20),
+
+  /// 'console' prints emails to the server log. Phase 14 adds a real transport.
+  EMAIL_TRANSPORT: z.enum(['console', 'brevo', 'resend']).default('console'),
+  EMAIL_FROM: z.string().default('Family Heritage <noreply@localhost>'),
+  EMAIL_API_KEY: z.string().optional(),
+
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('info'),
   SWAGGER_ENABLED: z
     .enum(['true', 'false'])
@@ -60,6 +76,12 @@ export function validateEnv(raw: Record<string, unknown>): Env {
   // Fail loudly on a combination that is individually valid but jointly broken.
   if (parsed.data.AI_ENABLED && !parsed.data.AI_API_KEY) {
     throw new Error('Invalid environment configuration:\n  - AI_ENABLED=true requires AI_API_KEY\n');
+  }
+
+  if (parsed.data.EMAIL_TRANSPORT !== 'console' && !parsed.data.EMAIL_API_KEY) {
+    throw new Error(
+      `Invalid environment configuration:\n  - EMAIL_TRANSPORT=${parsed.data.EMAIL_TRANSPORT} requires EMAIL_API_KEY\n`,
+    );
   }
 
   return parsed.data;

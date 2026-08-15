@@ -4,6 +4,7 @@ import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
 import helmet from '@fastify/helmet';
+import cookie from '@fastify/cookie';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
@@ -34,6 +35,9 @@ async function bootstrap(): Promise<void> {
   app.useGlobalFilters(new AllExceptionsFilter());
   app.enableShutdownHooks();
 
+  // Must be registered before any route reads request.cookies.
+  await app.register(cookie);
+
   await app.register(helmet, {
     // Swagger UI needs inline styles/scripts; everything else stays locked down.
     contentSecurityPolicy: nodeEnv === 'production' ? undefined : false,
@@ -52,7 +56,12 @@ async function bootstrap(): Promise<void> {
         .setTitle('Family Heritage API')
         .setDescription('Preserve a family lineage, photographs and stories.')
         .setVersion('0.1.0')
-        .addCookieAuth('fh_session')
+        .addCookieAuth('fh_session', {
+          type: 'apiKey',
+          in: 'cookie',
+          name: 'fh_session',
+          description: 'Opaque session token. Set by /auth/login, httpOnly.',
+        })
         .build(),
     );
     SwaggerModule.setup('api/docs', app, document, {

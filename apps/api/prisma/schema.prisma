@@ -1,10 +1,26 @@
-// Family Heritage - Prisma schema
+// Family Heritage - database schema
 //
-// PHASE 1: connection only. The domain model (User, Family, FamilyMembership,
-// Member, ParentChild, Partnership, Photo, PhotoSubject, Story, StorySubject,
-// Event, Invitation, AuditLog) lands in PHASE 2.
+// Five rules govern everything below.
 //
-// Deliberately absent, and staying absent for V1: pgvector, embeddings.
+// 1. A person exists independently of their data. The only required content
+//    field on a Member is displayName. Genealogy is the science of incomplete
+//    information; a schema that demands a birth date will be lied to.
+//
+// 2. familyId is on every tenant-scoped table. Denormalised on purpose: every
+//    query filters on one indexed column with no join, which makes the tenancy
+//    guarantee cheap to enforce and mechanically checkable.
+//
+// 3. Siblings are NEVER stored. They are derived from shared parents. Storing
+//    them means resynthesising edges across a subtree every time a parent
+//    changes, and the two representations will drift.
+//
+// 4. Dates are approximate by default. "circa 1890" and "before the war" are
+//    normal inputs. Every date is a triple: a nullable DATE, a qualifier, and
+//    the text the family actually said.
+//
+// 5. livingStatus is explicit, never derived from deathDate. You will often
+//    know someone died without knowing when, and you will have ancestors born
+//    in 1848 with no death record who are plainly not living.
 
 generator client {
   provider = "prisma-client-js"
@@ -13,4 +29,593 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+}
+
+// ============================ ENUMS ========================================
+
+enum FamilyRole {
+  OWNER
+  ADMIN
+  CONTRIBUTOR
+  VIEWER
+}
+
+enum LivingStatus {
+  LIVING
+  DECEASED
+  UNKNOWN
+}
+
+/// How much we trust a date. EXACT is a known date; ABOUT is "circa 1890";
+/// BEFORE/AFTER bound it; RANGE means the free-text field carries the detail.
+
+enum DateQualifier {
+  EXACT
+  ABOUT
+  BEFORE
+  AFTER
+  RANGE
+}
+
+/// Both a biological and an adoptive parent can be true at the same time.
+/// That is precisely why this is an edge property and not a column on Member.
+enum ParentRelationType {
+  BIOLOGICAL
+  ADOPTIVE
+  STEP
+  FOSTER
+  GUARDIAN
+}
+
+enum Certainty {
+  CONFIRMED
+  PROBABLE
+  DISPUTED
+}
+
+enum PartnershipType {
+  MARRIAGE
+  PARTNERSHIP
+  UNION
+}
+
+enum PartnershipStatus {
+  ACTIVE
+  SEPARATED
+  DIVORCED
+  ENDED_BY_DEATH
+}
+
+/// Adoption, estrangement, illness and unacknowledged parentage are not edge
+/// cases in genealogy - they are the recurring hard cases. A family with no way
+/// to record something sensitively is forced to either lie or stay silent.
+enum Visibility {
+  FAMILY
+  ADMINS_ONLY
+}
+
+/// Provenance of written content. AI output is always a DRAFT until a human
+/// approves it. Enforced in the service layer, recorded here.
+enum ContentSource {
+  HUMAN
+  AI_ASSISTED_DRAFT
+  AI_ASSISTED_APPROVED
+}
+
+enum EventType {
+  BIRTH
+  DEATH
+  MARRIAGE
+  MIGRATION
+  EDUCATION
+  CAREER
+  MILITARY
+  ACHIEVEMENT
+  RELIGIOUS
+  OTHER
+}
+
+enum AuditAction {
+  FAMILY_CREATED
+  FAMILY_UPDATED
+  FAMILY_EXPORTED
+  MEMBER_CREATED
+  MEMBER_UPDATED
+  MEMBER_DELETED
+  MEMBER_RESTORED
+  MEMBER_MARKED_DECEASED
+  MEMBER_DEATH_REVERTED
+  MEMBER_CLAIMED
+  RELATIONSHIP_CREATED
+  RELATIONSHIP_DELETED
+  PHOTO_UPLOADED
+  PHOTO_DELETED
+  PRIMARY_PHOTO_SET
+  STORY_CREATED
+  STORY_UPDATED
+  STORY_DELETED
+  EVENT_CREATED
+  EVENT_UPDATED
+  EVENT_DELETED
+  INVITATION_CREATED
+  INVITATION_ACCEPTED
+  INVITATION_REVOKED
+  ROLE_CHANGED
+  AI_STORY_DRAFTED
+}
+
+// ============================ IDENTITY =====================================
+
+/// A login. Distinct from Member, which is a person in a tree.
+/// Most Members will never have a User - they are deceased, or simply not users.
+model User {
+  id              String    @id @default(uuid()) @db.Uuid
+  /// Stored lowercased by the service layer so uniqueness is case-insensitive.
+  email           String    @unique
+  name            String?
+  avatarUrl       String?
+  /// Null for magic-link-only accounts. Argon2id, set in Phase 3.
+  passwordHash    String?
+  emailVerifiedAt DateTime?
+  lastLoginAt     DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  deletedAt       DateTime?
+
+  memberships     FamilyMembership[]
+  invitationsSent Invitation[]       @relation("InvitationInviter")
+  auditEntries    AuditLog[]
+  storiesAuthored Story[]            @relation("StoryAuthor")
+  photosUploaded  Photo[]            @relation("PhotoUploader")
+  membersCreated  Member[]           @relation("MemberCreatedBy")
+  membersUpdated  Member[]           @relation("MemberUpdatedBy")
+  sessions        Session[]
+  authTokens      AuthToken[]
+
+  @@index([deletedAt])
+}
+
+// ============================ TENANT =======================================
+
+/// The tenant boundary. Every authorisation decision starts here.
+model Family {
+  id          String  @id @default(uuid()) @db.Uuid
+  name        String
+  description String?
+
+  /// Plain columns rather than a settings JSONB blob: there are two of them,
+  /// they are queried, and columns are type-safe. Move to JSONB if this grows.
+  hideLivingFromViewers Boolean @default(true)
+  aiEnabled             Boolean @default(false)
+
+  /// No FK, deliberately: a Photo belongs to a Family, so an FK back would be
+  /// circular and force a two-step insert. The service nulls these when the
+  /// referenced row is deleted, and read paths tolerate a miss.
+  coverPhotoId        String? @db.Uuid
+  defaultRootMemberId String? @db.Uuid
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  memberships   FamilyMembership[]
+  members       Member[]
+  parentChild   ParentChild[]
+  partnerships  Partnership[]
+  photos        Photo[]
+  photoSubjects PhotoSubject[]
+  stories       Story[]
+  storySubjects StorySubject[]
+  events        Event[]
+  invitations   Invitation[]
+  auditLogs     AuditLog[]
+
+  @@index([deletedAt])
+}
+
+/// User <-> Family, carrying the role. A user may belong to many families.
+/// NOTE: familyId is never read from a JWT. Memberships change; tokens do not.
+model FamilyMembership {
+  id       String     @id @default(uuid()) @db.Uuid
+  userId   String     @db.Uuid
+  familyId String     @db.Uuid
+  role     FamilyRole @default(VIEWER)
+
+  /// The Member record this user says is them. Grants self-editing rights
+  /// regardless of role, and powers "how am I related to...?".
+  claimedMemberId String? @unique @db.Uuid
+
+  invitedById String?  @db.Uuid
+  joinedAt    DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user          User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  family        Family  @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  claimedMember Member? @relation("MemberClaim", fields: [claimedMemberId], references: [id], onDelete: SetNull)
+
+  @@unique([userId, familyId])
+  @@index([familyId, role])
+}
+
+// ============================ PEOPLE =======================================
+
+model Member {
+  id       String @id @default(uuid()) @db.Uuid
+  familyId String @db.Uuid
+
+  givenName   String?
+  familyName  String?
+  otherNames  String?
+  /// The ONLY required content field in the entire schema.
+  displayName String
+  maidenName  String?
+  /// Free text, not an enum: historical records are inconsistent, and adding an
+  /// enum value later is a migration for something that carries no logic.
+  gender      String?
+
+  livingStatus LivingStatus @default(UNKNOWN)
+
+  birthDate          DateTime?      @db.Date
+  birthDateQualifier DateQualifier?
+  birthDateText      String?
+  birthPlace         String?
+
+  deathDate          DateTime?      @db.Date
+  deathDateQualifier DateQualifier?
+  deathDateText      String?
+  deathPlace         String?
+
+  biography    String?
+  occupation   String?
+  notes        String?
+  /// Sensitive by nature; excluded from AI context and hidden from VIEWERs.
+  causeOfDeath String?
+
+  /// No FK - see the note on Family.coverPhotoId.
+  primaryPhotoId String? @db.Uuid
+  /// Manual ordering hint for siblings within a generation in the tree layout.
+  sortIndex      Int     @default(0)
+
+  createdById String?   @db.Uuid
+  updatedById String?   @db.Uuid
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  /// Soft delete. Nobody should be able to permanently erase a great-grandmother
+  /// by misreading a screen.
+  deletedAt   DateTime?
+
+  family    Family @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  createdBy User?  @relation("MemberCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedBy User?  @relation("MemberUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+
+  /// Edges where this member is the CHILD - i.e. links to their parents.
+  parentEdges ParentChild[] @relation("ChildSide")
+  /// Edges where this member is the PARENT - i.e. links to their children.
+  childEdges  ParentChild[] @relation("ParentSide")
+
+  partnershipsAsA Partnership[] @relation("PartnerA")
+  partnershipsAsB Partnership[] @relation("PartnerB")
+
+  photoSubjects PhotoSubject[]
+  storySubjects StorySubject[]
+  events        Event[]
+  claim         FamilyMembership? @relation("MemberClaim")
+
+  @@index([familyId, deletedAt])
+  @@index([familyId, livingStatus])
+  /// Trigram index for fuzzy name search. Genealogical names are misspelled
+  /// constantly, transliterated inconsistently, and change across generations.
+  @@index([displayName(ops: raw("gin_trgm_ops"))], type: Gin)
+}
+
+// ============================ RELATIONSHIPS ================================
+
+/// The descent edge. Directional, typed, and the only place parentage lives.
+///
+/// A child with a known mother and an unknown father has exactly one row.
+/// A child with biological and adoptive parents has rows for all of them,
+/// and all of them are true.
+model ParentChild {
+  id       String @id @default(uuid()) @db.Uuid
+  familyId String @db.Uuid
+
+  parentId String @db.Uuid
+  childId  String @db.Uuid
+
+  relationType ParentRelationType @default(BIOLOGICAL)
+  certainty    Certainty          @default(CONFIRMED)
+  notes        String?
+
+  createdAt DateTime @default(now())
+
+  family Family @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  parent Member @relation("ParentSide", fields: [parentId], references: [id], onDelete: Cascade)
+  child  Member @relation("ChildSide", fields: [childId], references: [id], onDelete: Cascade)
+
+  /// The same pair may appear once per relation type - biological AND adoptive.
+  @@unique([parentId, childId, relationType])
+  @@index([childId])
+  @@index([parentId])
+  @@index([familyId])
+}
+
+/// The pairing edge. Symmetric, so exactly one row per pair.
+///
+/// A CHECK constraint added in the migration enforces memberAId < memberBId.
+/// That is what makes the single row canonical: without it you get two rows for
+/// the same couple that slowly disagree with each other.
+model Partnership {
+  id       String @id @default(uuid()) @db.Uuid
+  familyId String @db.Uuid
+
+  memberAId String @db.Uuid
+  memberBId String @db.Uuid
+
+  type   PartnershipType   @default(MARRIAGE)
+  status PartnershipStatus @default(ACTIVE)
+
+  startDate          DateTime?      @db.Date
+  startDateQualifier DateQualifier?
+  startDateText      String?
+  endDate            DateTime?      @db.Date
+  endDateQualifier   DateQualifier?
+  endDateText        String?
+
+  place String?
+  notes String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  family  Family @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  memberA Member @relation("PartnerA", fields: [memberAId], references: [id], onDelete: Cascade)
+  memberB Member @relation("PartnerB", fields: [memberBId], references: [id], onDelete: Cascade)
+
+  /// Remarriage to the same person is a real thing, so startDate is part of the
+  /// key. Postgres treats NULLs as distinct, so several undated partnerships
+  /// between the same pair are permitted - the service layer warns instead.
+  @@unique([memberAId, memberBId, startDate])
+  @@index([memberAId])
+  @@index([memberBId])
+  @@index([familyId])
+}
+
+// ============================ MEDIA ========================================
+
+model Photo {
+  id       String @id @default(uuid()) @db.Uuid
+  familyId String @db.Uuid
+
+  /// Behind a StorageProvider interface from Phase 9, so Cloudinary can be
+  /// swapped for R2/S3 without touching anything but one adapter.
+  storageProvider String @default("cloudinary")
+  storageId       String
+  /// Cloudinary delivery type. 'authenticated' means the asset is NOT publicly
+  /// reachable and requires a short-lived signed URL from our backend.
+  deliveryType    String @default("authenticated")
+
+  width    Int?
+  height   Int?
+  bytes    Int?
+  format   String?
+  /// Tiny placeholder string so photos fade in instead of popping. Matters a
+  /// lot on slow connections.
+  blurhash String?
+
+  caption            String?
+  takenDate          DateTime?      @db.Date
+  takenDateQualifier DateQualifier?
+  takenDateText      String?
+  takenPlace         String?
+
+  uploadedById String?   @db.Uuid
+  createdAt    DateTime  @default(now())
+  deletedAt    DateTime?
+
+  family     Family         @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  uploadedBy User?          @relation("PhotoUploader", fields: [uploadedById], references: [id], onDelete: SetNull)
+  subjects   PhotoSubject[]
+
+  @@unique([storageProvider, storageId])
+  @@index([familyId, deletedAt])
+}
+
+/// A wedding photograph belongs to six people, not one. Modelling a single
+/// photoUrl on Member would throw away the most emotionally valuable data here.
+model PhotoSubject {
+  photoId  String @db.Uuid
+  memberId String @db.Uuid
+  familyId String @db.Uuid
+
+  createdAt DateTime @default(now())
+
+  photo  Photo  @relation(fields: [photoId], references: [id], onDelete: Cascade)
+  member Member @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  family Family @relation(fields: [familyId], references: [id], onDelete: Cascade)
+
+  @@id([photoId, memberId])
+  @@index([memberId])
+  @@index([familyId])
+}
+
+// ============================ NARRATIVE ====================================
+
+model Story {
+  id       String @id @default(uuid()) @db.Uuid
+  familyId String @db.Uuid
+
+  title String
+  body  String
+
+  source        ContentSource @default(HUMAN)
+  /// When AI assisted, the user's raw input is preserved verbatim, forever, and
+  /// remains viewable. The generated text never replaces what was actually said.
+  originalNotes String?
+
+  eventDate          DateTime?      @db.Date
+  eventDateQualifier DateQualifier?
+  eventDateText      String?
+  place              String?
+
+  visibility Visibility @default(FAMILY)
+
+  authorUserId String?   @db.Uuid
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  deletedAt    DateTime?
+
+  family   Family         @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  author   User?          @relation("StoryAuthor", fields: [authorUserId], references: [id], onDelete: SetNull)
+  subjects StorySubject[]
+
+  @@index([familyId, deletedAt])
+  @@index([familyId, visibility])
+}
+
+model StorySubject {
+  storyId  String @db.Uuid
+  memberId String @db.Uuid
+  familyId String @db.Uuid
+
+  createdAt DateTime @default(now())
+
+  story  Story  @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  member Member @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  family Family @relation(fields: [familyId], references: [id], onDelete: Cascade)
+
+  @@id([storyId, memberId])
+  @@index([memberId])
+  @@index([familyId])
+}
+
+/// A structured life event. Stories are prose; events are points on a timeline.
+model Event {
+  id       String @id @default(uuid()) @db.Uuid
+  familyId String @db.Uuid
+  memberId String @db.Uuid
+
+  type        EventType @default(OTHER)
+  title       String
+  description String?
+
+  date          DateTime?      @db.Date
+  dateQualifier DateQualifier?
+  dateText      String?
+  place         String?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  family Family @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  member Member @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@index([familyId, deletedAt])
+  @@index([memberId, date])
+}
+
+// ============================ ACCESS & AUDIT ===============================
+
+model Invitation {
+  id       String @id @default(uuid()) @db.Uuid
+  familyId String @db.Uuid
+
+  email String
+  role  FamilyRole @default(VIEWER)
+  /// Only the SHA-256 hash is stored. The raw token exists once, in one email.
+  tokenHash String @unique
+
+  invitedById String?   @db.Uuid
+  expiresAt   DateTime
+  acceptedAt  DateTime?
+  revokedAt   DateTime?
+  createdAt   DateTime  @default(now())
+
+  family    Family @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  invitedBy User?  @relation("InvitationInviter", fields: [invitedById], references: [id], onDelete: SetNull)
+
+  @@index([familyId])
+  @@index([email])
+}
+
+/// Append-only. Not compliance theatre: in a multi-contributor family archive,
+/// "who changed grandmother's birth year?" is a question that WILL be asked,
+/// and answering it prevents real conflict between real relatives.
+model AuditLog {
+  id       String @id @default(uuid()) @db.Uuid
+  familyId String @db.Uuid
+
+  actorUserId String?     @db.Uuid
+  action      AuditAction
+  entityType  String
+  entityId    String?     @db.Uuid
+
+  /// Human-readable one-liner, e.g. "Marked John Kwesiga as deceased".
+  summary String?
+  /// { field: { from, to } } for updates.
+  diff    Json?
+
+  ip        String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  family Family @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  actor  User?  @relation(fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@index([familyId, createdAt(sort: Desc)])
+  @@index([entityType, entityId])
+}
+
+// ============================ AUTHENTICATION ===============================
+
+/// An opaque server-side session.
+///
+/// Chosen over JWT + refresh-token rotation deliberately. A JWT cannot be
+/// revoked before it expires; in a product holding a family's private history,
+/// "log out everywhere" and "kick the stolen laptop" have to actually work.
+/// The cost is one indexed lookup per request, which at this size is nothing.
+///
+/// The cookie holds the raw token. The database holds only its SHA-256 hash,
+/// so a leaked database dump cannot be replayed as a live session.
+model Session {
+  id        String @id @default(uuid()) @db.Uuid
+  userId    String @db.Uuid
+  tokenHash String @unique
+
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  lastUsedAt DateTime @default(now())
+
+  ip        String?
+  userAgent String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+enum AuthTokenPurpose {
+  MAGIC_LINK
+  PASSWORD_RESET
+  EMAIL_VERIFICATION
+}
+
+/// Single-use, short-lived tokens sent by email. One table for all three
+/// purposes because the lifecycle is identical: issue, email, consume once.
+model AuthToken {
+  id        String           @id @default(uuid()) @db.Uuid
+  userId    String?          @db.Uuid
+  email     String
+  tokenHash String           @unique
+  purpose   AuthTokenPurpose
+
+  expiresAt  DateTime
+  consumedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([email, purpose])
+  @@index([expiresAt])
 }
