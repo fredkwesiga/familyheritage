@@ -1,10 +1,12 @@
 import { Module } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import { AuditModule } from './audit/audit.module';
 import { AuthGuard } from './auth/auth.guard';
 import { AuthModule } from './auth/auth.module';
 import { ConfigModule } from './config/config.module';
 import { EmailModule } from './email/email.module';
+import { FamiliesModule } from './families/families.module';
 import { HealthModule } from './health/health.module';
 import { PrismaModule } from './prisma/prisma.module';
 
@@ -15,20 +17,23 @@ import { PrismaModule } from './prisma/prisma.module';
  * a brute-force attempt is rejected before it costs an Argon2 hash. Nest runs
  * APP_GUARD providers in declaration order.
  *
+ * The two tenancy guards - FamilyMembershipGuard and PermissionGuard - are
+ * deliberately NOT global. They need a :familyId route parameter, so they are
+ * mounted per-controller on family-scoped routes.
+ *
  * Feature modules still to come:
- *   Phase 4  families      Phase 5  members       Phase 6  relationships
- *   Phase 12 stories       Phase 14 invitations   Phase 16 ai
- *   Phase 17 audit
+ *   Phase 5  members       Phase 6  relationships   Phase 12 stories
+ *   Phase 14 invitations   Phase 16 ai
  */
 @Module({
   imports: [
     ConfigModule,
     PrismaModule,
     EmailModule,
-    // In-memory storage: correct for a single free-tier instance. Phase 20 adds
-    // a shared store only if we ever run more than one.
+    AuditModule,
     ThrottlerModule.forRoot([{ name: 'default', ttl: 60_000, limit: 100 }]),
     AuthModule,
+    FamiliesModule,
     HealthModule,
   ],
   providers: [
