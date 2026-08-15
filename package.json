@@ -11,6 +11,7 @@
     "apps/*"
   ],
   "scripts": {
+    "kill": "lsof -ti :3000 -ti :5173 -ti :5174 | xargs kill -9 2>/dev/null || true",
     "db:up": "docker compose up -d",
     "db:down": "docker compose down",
     "db:reset": "docker compose down -v && docker compose up -d",

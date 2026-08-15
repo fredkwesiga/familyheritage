@@ -1,6 +1,7 @@
-import { createBrowserRouter } from 'react-router-dom';
+import { createBrowserRouter, Navigate } from 'react-router-dom';
 import { RedirectIfAuthenticated, RequireAuth } from '@/features/auth/require-auth';
 import { AuthLayout } from '@/layouts/auth-layout';
+import { FamilyLayout } from '@/layouts/family-layout';
 import { RootLayout } from '@/layouts/root-layout';
 import { ForgotPasswordPage } from '@/pages/auth/forgot-password-page';
 import { LoginPage } from '@/pages/auth/login-page';
@@ -9,16 +10,22 @@ import { MagicLinkPage } from '@/pages/auth/magic-link-page';
 import { RegisterPage } from '@/pages/auth/register-page';
 import { ResetPasswordPage } from '@/pages/auth/reset-password-page';
 import { VerifyEmailPage } from '@/pages/auth/verify-email-page';
-import { HomePage } from '@/pages/home-page';
+import { CreateFamilyPage } from '@/pages/families/create-family-page';
+import { FamiliesPage } from '@/pages/families/families-page';
+import { FamilyAccessPage } from '@/pages/family/family-access-page';
+import { FamilyHomePage } from '@/pages/family/family-home-page';
+import { FamilySettingsPage } from '@/pages/family/family-settings-page';
 import { NotFoundPage } from '@/pages/not-found-page';
 
 /**
- * Three groups of routes:
+ * Four groups of routes:
  *
- *  - signed-out only  a signed-in user is bounced to the home page
+ *  - signed-out only  a signed-in user is bounced to their families
  *  - callback         reachable in either state, because a link from an email
  *                     may be opened by someone already signed in
- *  - protected        everything real, behind RequireAuth
+ *  - account-level    protected, chrome from RootLayout, no family in scope
+ *  - family-level     protected, chrome from FamilyLayout, which loads the
+ *                     family once and puts it in context for everything below
  *
  * The /auth/* paths must match exactly what the API puts in its emails
  * (see AuthService.buildUrl).
@@ -50,9 +57,21 @@ export const router = createBrowserRouter([
     element: <RequireAuth />,
     children: [
       {
-        path: '/',
         element: <RootLayout />,
-        children: [{ index: true, element: <HomePage /> }],
+        children: [
+          { path: '/', element: <Navigate to="/families" replace /> },
+          { path: '/families', element: <FamiliesPage /> },
+          { path: '/families/new', element: <CreateFamilyPage /> },
+        ],
+      },
+      {
+        path: '/f/:familyId',
+        element: <FamilyLayout />,
+        children: [
+          { index: true, element: <FamilyHomePage /> },
+          { path: 'access', element: <FamilyAccessPage /> },
+          { path: 'settings', element: <FamilySettingsPage /> },
+        ],
       },
     ],
   },

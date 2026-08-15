@@ -17,6 +17,7 @@ export default defineConfig({
   },
   server: {
     port: 5173,
+    strictPort: true,
     // The dev proxy means the browser only ever talks to one origin. No CORS in
     // development, and relative '/api/v1/...' paths work unchanged in production.
     proxy: {
