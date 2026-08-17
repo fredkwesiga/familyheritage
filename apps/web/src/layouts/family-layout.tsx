@@ -66,7 +66,8 @@ export function FamilyLayout() {
               <TabLink to={`/f/${family.id}`} end>
                 Overview
               </TabLink>
-              <TabLink to={`/f/${family.id}/access`}>People</TabLink>
+              <TabLink to={`/f/${family.id}/members`}>Relatives</TabLink>
+              <TabLink to={`/f/${family.id}/access`}>Access</TabLink>
               <TabLink to={`/f/${family.id}/settings`}>Settings</TabLink>
             </ul>
           </nav>

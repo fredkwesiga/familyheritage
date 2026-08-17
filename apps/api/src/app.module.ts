@@ -9,6 +9,7 @@ import { EmailModule } from './email/email.module';
 import { FamiliesModule } from './families/families.module';
 import { HealthModule } from './health/health.module';
 import { PrismaModule } from './prisma/prisma.module';
+import { MembersModule } from './members/members.module';
 
 /**
  * Root module.
@@ -34,6 +35,7 @@ import { PrismaModule } from './prisma/prisma.module';
     ThrottlerModule.forRoot([{ name: 'default', ttl: 60_000, limit: 100 }]),
     AuthModule,
     FamiliesModule,
+    MembersModule,
     HealthModule,
   ],
   providers: [

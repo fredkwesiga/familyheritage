@@ -16,6 +16,10 @@ import { FamilyAccessPage } from '@/pages/family/family-access-page';
 import { FamilyHomePage } from '@/pages/family/family-home-page';
 import { FamilySettingsPage } from '@/pages/family/family-settings-page';
 import { NotFoundPage } from '@/pages/not-found-page';
+import { MemberEditPage } from '@/pages/family/member-edit-page';
+import { MemberNewPage } from '@/pages/family/member-new-page';
+import { MemberProfilePage } from '@/pages/family/member-profile-page';
+import { MembersPage } from '@/pages/family/members-page';
 
 /**
  * Four groups of routes:
@@ -69,8 +73,12 @@ export const router = createBrowserRouter([
         element: <FamilyLayout />,
         children: [
           { index: true, element: <FamilyHomePage /> },
-          { path: 'access', element: <FamilyAccessPage /> },
           { path: 'settings', element: <FamilySettingsPage /> },
+          { path: 'members', element: <MembersPage /> },
+          { path: 'members/new', element: <MemberNewPage /> },
+           { path: 'members/:memberId', element: <MemberProfilePage /> },
+          { path: 'members/:memberId/edit', element: <MemberEditPage /> },
+          { path: 'access', element: <FamilyAccessPage /> },
         ],
       },
     ],
