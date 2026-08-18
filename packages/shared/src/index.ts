@@ -5,3 +5,4 @@ export * from './permissions.js';
 export * from './dates.js';
 export * from './family.js';
 export * from './member.js';
+export * from './relationship.js';

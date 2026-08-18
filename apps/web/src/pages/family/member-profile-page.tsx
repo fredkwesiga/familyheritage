@@ -7,6 +7,12 @@ import { useCurrentFamily } from '@/features/families/family-context';
 import { MarkDeceasedDialog } from '@/features/members/mark-deceased-dialog';
 import { MemberAvatar } from '@/features/members/member-avatar';
 import {
+  AddRelativeDialog,
+  type RelationKind,
+} from '@/features/relationships/add-relative-dialog';
+import { RelationsSection } from '@/features/relationships/relations-section';
+import { useRelations } from '@/features/relationships/use-relationships';
+import {
   useClaimMember,
   useDeleteMember,
   useMember,
@@ -18,7 +24,10 @@ export function MemberProfilePage() {
   const { memberId } = useParams<{ memberId: string }>();
   const navigate = useNavigate();
   const { data: member, isPending, isError } = useMember(family.id, memberId);
+
   const [deceasedOpen, setDeceasedOpen] = useState(false);
+  const [addRelation, setAddRelation] = useState<RelationKind | null>(null);
+  const { data: relations, isPending: relationsPending } = useRelations(family.id, memberId);
 
   const claim = useClaimMember(family.id, memberId ?? '');
   const setLivingStatus = useSetLivingStatus(family.id, memberId ?? '');
@@ -125,9 +134,17 @@ export function MemberProfilePage() {
         </section>
       )}
 
+      <section className="border-t border-border/60 pt-8">
+        <RelationsSection
+          relations={relations}
+          isPending={relationsPending}
+          onAdd={setAddRelation}
+        />
+      </section>
+
       <section className="space-y-4 border-t border-border/60 pt-8">
         <p className="text-sm text-muted-foreground">
-          Parents, children, partners and the family tree itself arrive in Phase 6.
+          The visual family tree arrives in Phase 8.
         </p>
 
         <div className="flex flex-wrap gap-3">
@@ -191,6 +208,13 @@ export function MemberProfilePage() {
         familyId={family.id}
         open={deceasedOpen}
         onClose={() => setDeceasedOpen(false)}
+      />
+
+      <AddRelativeDialog
+        anchor={member}
+        familyId={family.id}
+        relation={addRelation}
+        onClose={() => setAddRelation(null)}
       />
     </div>
   );

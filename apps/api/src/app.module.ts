@@ -10,6 +10,7 @@ import { FamiliesModule } from './families/families.module';
 import { HealthModule } from './health/health.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { MembersModule } from './members/members.module';
+import { RelationshipsModule } from './relationships/relationships.module';
 
 /**
  * Root module.
@@ -36,6 +37,7 @@ import { MembersModule } from './members/members.module';
     AuthModule,
     FamiliesModule,
     MembersModule,
+    RelationshipsModule,
     HealthModule,
   ],
   providers: [
