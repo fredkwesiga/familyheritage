@@ -25,6 +25,7 @@ import {
   type MemberSummary,
   type OkResponse,
   type UpdatePartnershipInput,
+  type RelationshipAnswerResponse,
 } from '@fh/shared';
 import type { AuthenticatedUser } from '../auth/auth.types';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
@@ -57,6 +58,30 @@ export class RelationshipsController {
   ): Promise<MemberRelationsResponse> {
     return { relations: await this.relationships.relationsOf(context, memberId) };
   }
+
+    @Get('members/:memberId/relationship-to/:otherMemberId')
+  @ApiOperation({
+    summary: 'How is one person related to another?',
+    description:
+      'Computed from the family graph by a deterministic engine - lowest common ancestors, ' +
+      'then degree and removal from the two path depths. No language model is involved, and ' +
+      'the answer is identical every time it is asked.',
+  })
+  async relationshipTo(
+    @Param('memberId') memberId: string,
+    @Param('otherMemberId') otherMemberId: string,
+    @CurrentFamily() context: FamilyContext,
+  ): Promise<RelationshipAnswerResponse> {
+    return {
+      relationship: await this.relationships.relationshipBetween(
+        context,
+        memberId,
+        otherMemberId,
+      ),
+    };
+  }
+
+
 
   @Post('members/:memberId/relatives')
   @RequirePermission(Permission.MEMBER_CREATE)

@@ -6,3 +6,5 @@ export * from './dates.js';
 export * from './family.js';
 export * from './member.js';
 export * from './relationship.js';
+export * from './kinship.js';
+export * from './kinship-labels.js';

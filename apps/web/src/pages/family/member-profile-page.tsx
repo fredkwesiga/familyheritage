@@ -11,6 +11,10 @@ import {
   type RelationKind,
 } from '@/features/relationships/add-relative-dialog';
 import { RelationsSection } from '@/features/relationships/relations-section';
+import {
+  RelationshipFinder,
+  RelationshipToYou,
+} from '@/features/relationships/relationship-finder';
 import { useRelations } from '@/features/relationships/use-relationships';
 import {
   useClaimMember,
@@ -96,6 +100,7 @@ export function MemberProfilePage() {
         </div>
       </header>
 
+      <RelationshipToYou member={member} />
       {member.isRedacted && (
         <div className="flex items-start gap-3 rounded-xl border border-border bg-secondary/50 p-4">
           <EyeOff aria-hidden className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
@@ -135,6 +140,11 @@ export function MemberProfilePage() {
       )}
 
       <section className="border-t border-border/60 pt-8">
+
+       <section className="max-w-md border-t border-border/60 pt-8">
+        <RelationshipFinder anchor={member} />
+      </section>
+      
         <RelationsSection
           relations={relations}
           isPending={relationsPending}

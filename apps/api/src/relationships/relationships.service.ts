@@ -5,6 +5,8 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import {
+  computeRelationship,
+  describeRelationship,
   ErrorCode,
   normalizeDate,
   type AddRelativeInput,
@@ -15,6 +17,7 @@ import {
   type MemberSummary,
   type ParentLink,
   type PartnerLink,
+  type RelationshipAnswer,
   type SiblingLink,
   type UpdatePartnershipInput,
 } from '@fh/shared';
@@ -25,6 +28,7 @@ import { toMemberSummary, type MemberRow } from '../members/member.mapper';
 import { MembersService } from '../members/members.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { BLOOD_RELATION_TYPES, GraphRepository } from './graph.repository';
+import { RelationshipGraphLoader } from './relationship-graph.loader';
 
 function dateColumns(prefix: 'start' | 'end', value: ApproximateDate | null | undefined) {
   if (value === undefined) return {};
@@ -46,7 +50,63 @@ export class RelationshipsService {
     private readonly graph: GraphRepository,
     private readonly members: MembersService,
     private readonly audit: AuditService,
+    private readonly graphLoader: RelationshipGraphLoader,
   ) {}
+
+    // ------------------------------------------------------ relationship answer
+
+  /**
+   * "How am I related to David?"
+   *
+   * Entirely deterministic. The engine in @fh/shared computes the answer from
+   * the family graph and the label layer names it; no language model is
+   * involved at any point. Phase 16's AI feature may one day phrase this more
+   * warmly, but it will be phrasing a result it did not decide.
+   */
+  async relationshipBetween(
+    context: FamilyContext,
+    fromMemberId: string,
+    toMemberId: string,
+  ): Promise<RelationshipAnswer> {
+    const [fromRow, toRow] = await Promise.all([
+      this.requireMemberRow(context, fromMemberId),
+      this.requireMemberRow(context, toMemberId),
+    ]);
+
+    const graph = await this.graphLoader.load(context.familyId);
+    const result = computeRelationship(graph, fromMemberId, toMemberId);
+    const hideLiving = await this.hideLiving(context);
+
+    // Names for the shared ancestors, so the answer can say WHY - "you share
+    // great-grandparents, Yusuf and Amina" - rather than only asserting a term.
+    const ancestorRows = result.commonAncestorIds.length
+      ? ((await this.prisma.scoped.member.findMany({
+          where: { familyId: context.familyId, id: { in: result.commonAncestorIds } },
+        })) as MemberRow[])
+      : [];
+
+    const viaRow = result.viaMemberId
+      ? ((await this.prisma.scoped.member.findFirst({
+          where: { familyId: context.familyId, id: result.viaMemberId },
+        })) as MemberRow | null)
+      : null;
+
+    return {
+      from: toMemberSummary(fromRow, context, hideLiving),
+      to: toMemberSummary(toRow, context, hideLiving),
+      kind: result.kind,
+      up: result.up,
+      down: result.down,
+      degree: result.degree,
+      removed: result.removed,
+      half: result.half,
+      viaAdoption: result.viaAdoption,
+      commonAncestors: ancestorRows.map((row) => toMemberSummary(row, context, hideLiving)),
+      via: viaRow ? toMemberSummary(viaRow, context, hideLiving) : null,
+      canonical: result.canonical,
+      label: describeRelationship(result, toRow.gender),
+    };
+  }
 
   // ------------------------------------------------------------ parent-child
 

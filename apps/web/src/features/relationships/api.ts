@@ -2,12 +2,14 @@ import {
   memberRelationsResponseSchema,
   memberSummarySchema,
   okResponseSchema,
+    relationshipAnswerResponseSchema,
   type AddRelativeInput,
   type CreateParentChildInput,
   type CreatePartnershipInput,
   type MemberRelations,
   type MemberSummary,
   type UpdatePartnershipInput,
+    type RelationshipAnswer,
 } from '@fh/shared';
 import { z } from 'zod';
 import { apiRequest } from '@/lib/api-client';
@@ -15,6 +17,8 @@ import { apiRequest } from '@/lib/api-client';
 export const relationKeys = {
   of: (familyId: string, memberId: string) =>
     ['families', familyId, 'members', memberId, 'relations'] as const,
+  between: (familyId: string, fromId: string, toId: string) =>
+    ['families', familyId, 'relationship', fromId, toId] as const,
 };
 
 const addRelativeResponseSchema = z.object({ member: memberSummarySchema });
@@ -41,6 +45,18 @@ export async function addRelative(
     { method: 'POST', body },
   );
   return member;
+}
+
+export async function getRelationshipTo(
+  familyId: string,
+  fromMemberId: string,
+  toMemberId: string,
+): Promise<RelationshipAnswer> {
+  const { relationship } = await apiRequest(
+    `/families/${familyId}/members/${fromMemberId}/relationship-to/${toMemberId}`,
+    relationshipAnswerResponseSchema,
+  );
+  return relationship;
 }
 
 export async function linkParentChild(

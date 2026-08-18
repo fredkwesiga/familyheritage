@@ -169,3 +169,49 @@ export const PARTNERSHIP_TYPE_LABELS: Record<PartnershipType, string> = {
   PARTNERSHIP: 'Partnership',
   UNION: 'Union',
 };
+
+
+// ------------------------------------------------- relationship enquiry
+
+export const relationshipQuerySchema = z.object({
+  fromMemberId: z.string().uuid(),
+  toMemberId: z.string().uuid(),
+});
+export type RelationshipQuery = z.infer<typeof relationshipQuerySchema>;
+
+/** One person on the path between two relatives, for showing the chain. */
+export const relationshipPathStepSchema = z.object({
+  member: memberSummarySchema,
+  /** How this person connects to the previous one. */
+  step: z.enum(['UP', 'DOWN', 'ACROSS']),
+});
+export type RelationshipPathStep = z.infer<typeof relationshipPathStepSchema>;
+
+export const relationshipAnswerSchema = z.object({
+  from: memberSummarySchema,
+  to: memberSummarySchema,
+  kind: z.enum([
+    'SELF', 'PARTNER', 'ANCESTOR', 'DESCENDANT', 'SIBLING', 'AUNT_UNCLE',
+    'NIECE_NEPHEW', 'COUSIN', 'STEP_PARENT', 'STEP_CHILD', 'IN_LAW', 'UNRELATED',
+  ]),
+  up: z.number().int().nonnegative(),
+  down: z.number().int().nonnegative(),
+  degree: z.number().int().nonnegative(),
+  removed: z.number().int().nonnegative(),
+  half: z.boolean(),
+  viaAdoption: z.boolean(),
+  /// Everyone the two people descend from at the closest shared level.
+  commonAncestors: z.array(memberSummarySchema),
+  via: memberSummarySchema.nullable(),
+  /// Machine-readable, e.g. "cousin(2,1)". Never shown to a user.
+  canonical: z.string(),
+  /// The English term. Computed on the server so the answer is identical
+  /// everywhere it appears, and so a future locale layer has one place to live.
+  label: z.string(),
+});
+export type RelationshipAnswer = z.infer<typeof relationshipAnswerSchema>;
+
+export const relationshipAnswerResponseSchema = z.object({
+  relationship: relationshipAnswerSchema,
+});
+export type RelationshipAnswerResponse = z.infer<typeof relationshipAnswerResponseSchema>;

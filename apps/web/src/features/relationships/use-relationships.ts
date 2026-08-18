@@ -19,6 +19,28 @@ export function useRelations(familyId: string, memberId: string | undefined) {
 }
 
 /**
+ * The answer to "how am I related to this person?".
+ *
+ * Cached indefinitely for the session: the result is a deterministic function of
+ * the family graph, so it cannot change unless a relationship changes - and when
+ * one does, the invalidation below clears it.
+ */
+export function useRelationshipTo(
+  familyId: string,
+  fromMemberId: string | null | undefined,
+  toMemberId: string | null | undefined,
+) {
+  return useQuery({
+    queryKey: relationKeys.between(familyId, fromMemberId ?? 'none', toMemberId ?? 'none'),
+    queryFn: () =>
+      relationsApi.getRelationshipTo(familyId, fromMemberId as string, toMemberId as string),
+    enabled: Boolean(fromMemberId && toMemberId && fromMemberId !== toMemberId),
+    staleTime: Infinity,
+    retry: false,
+  });
+}
+
+/**
  * A relationship change ripples further than the person you edited.
  *
  * Adding a parent changes that parent's children, every existing sibling's
@@ -34,6 +56,8 @@ function useRelationInvalidation(familyId: string) {
     void queryClient.invalidateQueries({ queryKey: memberKeys.all(familyId) });
     void queryClient.invalidateQueries({ queryKey: familyKeys.detail(familyId) });
     void queryClient.invalidateQueries({ queryKey: familyKeys.list() });
+    // Every cached relationship answer for this family is now suspect.
+    void queryClient.invalidateQueries({ queryKey: ['families', familyId, 'relationship'] });
   };
 }
 
