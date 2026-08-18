@@ -26,6 +26,7 @@ import {
   type OkResponse,
   type UpdatePartnershipInput,
   type RelationshipAnswerResponse,
+  type FamilyTreeResponse,
 } from '@fh/shared';
 import type { AuthenticatedUser } from '../auth/auth.types';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
@@ -43,7 +44,18 @@ import { RelationshipsService } from './relationships.service';
 @Controller('families/:familyId')
 @UseGuards(FamilyMembershipGuard, PermissionGuard)
 export class RelationshipsController {
-  constructor(private readonly relationships: RelationshipsService) {}
+  constructor(private readonly relationships: RelationshipsService) { }
+
+  @Get('tree')
+  @ApiOperation({
+    summary: 'The whole family graph',
+    description:
+      'Every living record, every parent-child link and every partnership, in one response. ' +
+      'The client can then re-centre the tree on anyone without another request.',
+  })
+  async tree(@CurrentFamily() context: FamilyContext): Promise<FamilyTreeResponse> {
+    return { tree: await this.relationships.tree(context) };
+  }
 
   @Get('members/:memberId/relations')
   @ApiOperation({
@@ -59,7 +71,7 @@ export class RelationshipsController {
     return { relations: await this.relationships.relationsOf(context, memberId) };
   }
 
-    @Get('members/:memberId/relationship-to/:otherMemberId')
+  @Get('members/:memberId/relationship-to/:otherMemberId')
   @ApiOperation({
     summary: 'How is one person related to another?',
     description:

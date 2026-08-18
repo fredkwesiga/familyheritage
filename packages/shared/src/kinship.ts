@@ -318,3 +318,81 @@ export function computeRelationship(
 
   return UNRELATED;
 }
+
+
+/**
+ * The people immediately around one person.
+ *
+ * Used by the focus view, which shows exactly this: parents above, partners
+ * beside, siblings across, children below. Deriving it here rather than in a
+ * component means the tree and the relations list cannot disagree.
+ */
+export interface ImmediateRelatives {
+  parentIds: string[];
+  childIds: string[];
+  partnerIds: string[];
+  /** Derived from shared blood parents, with the same rule used everywhere else. */
+  siblings: Array<{ id: string; half: boolean }>;
+}
+
+export function immediateRelatives(graph: FamilyGraph, memberId: string): ImmediateRelatives {
+  const parentIds = bloodParentIds(graph, memberId);
+
+  const childIds = (graph.children.get(memberId) ?? [])
+    .filter((edge) => BLOOD_TYPES.has(edge.type))
+    .map((edge) => edge.id);
+
+  const partnerIds = [...new Set(graph.partners.get(memberId) ?? [])];
+
+  // Count how many parents each candidate shares. Two or more means full.
+  const sharedCounts = new Map<string, number>();
+  for (const parentId of parentIds) {
+    for (const edge of graph.children.get(parentId) ?? []) {
+      if (!BLOOD_TYPES.has(edge.type)) continue;
+      if (edge.id === memberId) continue;
+      sharedCounts.set(edge.id, (sharedCounts.get(edge.id) ?? 0) + 1);
+    }
+  }
+
+  const siblings = [...sharedCounts.entries()].map(([id, shared]) => ({
+    id,
+    half: shared < 2 || parentIds.length < 2,
+  }));
+
+  return { parentIds, childIds, partnerIds, siblings };
+}
+
+/**
+ * Generation numbers for laying a tree out.
+ *
+ * Zero is the focused person; negative is upward. Breadth-first from the focus
+ * through parents, children and partners, so a spouse sits on the same row as
+ * the person they married even when they have no blood tie to the family.
+ */
+export function generationIndex(graph: FamilyGraph, rootId: string): Map<string, number> {
+  const generations = new Map<string, number>([[rootId, 0]]);
+  const queue: string[] = [rootId];
+
+  while (queue.length > 0) {
+    const id = queue.shift() as string;
+    const generation = generations.get(id) as number;
+
+    for (const edge of graph.parents.get(id) ?? []) {
+      if (!BLOOD_TYPES.has(edge.type) || generations.has(edge.id)) continue;
+      generations.set(edge.id, generation - 1);
+      queue.push(edge.id);
+    }
+    for (const edge of graph.children.get(id) ?? []) {
+      if (!BLOOD_TYPES.has(edge.type) || generations.has(edge.id)) continue;
+      generations.set(edge.id, generation + 1);
+      queue.push(edge.id);
+    }
+    for (const partnerId of graph.partners.get(id) ?? []) {
+      if (generations.has(partnerId)) continue;
+      generations.set(partnerId, generation);
+      queue.push(partnerId);
+    }
+  }
+
+  return generations;
+}

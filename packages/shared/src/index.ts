@@ -8,3 +8,4 @@ export * from './member.js';
 export * from './relationship.js';
 export * from './kinship.js';
 export * from './kinship-labels.js';
+export * from './tree.js';

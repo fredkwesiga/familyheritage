@@ -17,6 +17,7 @@ import {
   type MemberSummary,
   type ParentLink,
   type PartnerLink,
+  type FamilyTree,
   type RelationshipAnswer,
   type SiblingLink,
   type UpdatePartnershipInput,
@@ -52,6 +53,64 @@ export class RelationshipsService {
     private readonly audit: AuditService,
     private readonly graphLoader: RelationshipGraphLoader,
   ) {}
+
+
+    // ------------------------------------------------------------------- tree
+
+  /**
+   * The whole family graph in one response.
+   *
+   * Deliberately not paged. A family is ten to a hundred people, so one request
+   * is both simpler and faster than a windowed query - and once the client has
+   * the whole graph it can re-centre the tree on anyone without another round
+   * trip, which is what makes the focus view feel instant.
+   *
+   * Deleted members are excluded, and their edges with them: a removed person
+   * should leave no dangling line in the tree.
+   */
+  async tree(context: FamilyContext): Promise<FamilyTree> {
+    const hideLiving = await this.hideLiving(context);
+
+    const [memberRows, parentChild, partnerships] = await Promise.all([
+      this.prisma.scoped.member.findMany({
+        where: { familyId: context.familyId, deletedAt: null },
+        orderBy: [{ familyName: 'asc' }, { givenName: 'asc' }],
+      }) as Promise<MemberRow[]>,
+      this.prisma.scoped.parentChild.findMany({
+        where: {
+          familyId: context.familyId,
+          parent: { deletedAt: null },
+          child: { deletedAt: null },
+        },
+        select: { id: true, parentId: true, childId: true, relationType: true },
+      }),
+      this.prisma.scoped.partnership.findMany({
+        where: {
+          familyId: context.familyId,
+          memberA: { deletedAt: null },
+          memberB: { deletedAt: null },
+        },
+        select: { id: true, memberAId: true, memberBId: true, type: true, status: true },
+      }),
+    ]);
+
+    // Start where the reader is: their own record if they have claimed one,
+    // then the family's chosen root, then simply the first person recorded.
+    const family = await this.prisma.family.findFirst({
+      where: { id: context.familyId },
+      select: { defaultRootMemberId: true },
+    });
+    const firstMemberId = memberRows[0]?.id ?? null;
+    const suggestedRootId =
+      context.claimedMemberId ?? family?.defaultRootMemberId ?? firstMemberId;
+
+    return {
+      members: memberRows.map((row) => toMemberSummary(row, context, hideLiving)),
+      parentChild,
+      partnerships,
+      suggestedRootId,
+    };
+  }
 
     // ------------------------------------------------------ relationship answer
 
