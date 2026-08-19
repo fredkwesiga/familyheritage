@@ -40,6 +40,7 @@ export function TreeNodeCard({
       )}
     >
       <MemberAvatar
+      memberId={member.id}
         displayName={member.displayName}
         livingStatus={member.livingStatus}
         size={size === 'md' ? 'md' : 'sm'}

@@ -211,6 +211,7 @@ function Row({
         className="flex min-w-0 flex-1 items-center gap-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
         <MemberAvatar
+        memberId={member.id}
           displayName={member.displayName}
           livingStatus={member.livingStatus}
           size="sm"

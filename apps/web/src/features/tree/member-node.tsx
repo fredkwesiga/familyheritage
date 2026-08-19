@@ -38,6 +38,7 @@ export const MemberNode = memo(function MemberNode({ data }: NodeProps) {
       <Handle type="target" position={Position.Left} id="partner-left" className="!opacity-0" />
 
       <MemberAvatar
+      memberId={member.id}
         displayName={member.displayName}
         livingStatus={member.livingStatus}
         size="sm"

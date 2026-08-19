@@ -25,6 +25,7 @@ export function MemberCard({ member, to }: { member: MemberSummary; to: string }
       )}
     >
       <MemberAvatar
+      memberId={member.id}
         displayName={member.displayName}
         livingStatus={member.livingStatus}
         size="md"

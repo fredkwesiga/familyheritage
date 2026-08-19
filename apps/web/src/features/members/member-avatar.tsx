@@ -1,9 +1,13 @@
+import { useCurrentFamily } from '@/features/families/family-context';
+import { useMemberAvatars } from '@/features/photos/use-photos';
 import { cn } from '@/lib/utils';
 
 interface MemberAvatarProps {
   displayName: string;
   livingStatus: 'LIVING' | 'DECEASED' | 'UNKNOWN';
-  /** Cloudinary asset arrives in Phase 9. Until then this is always a monogram. */
+  /** When given, the member's profile picture is looked up automatically. */
+  memberId?: string;
+  /** An explicit URL wins over the lookup - used by the photo picker. */
   photoUrl?: string | null;
   size?: 'sm' | 'md' | 'lg' | 'xl';
   className?: string;
@@ -27,32 +31,41 @@ function initialsOf(displayName: string): string {
 /**
  * A member's picture, or a designed fallback.
  *
- * The fallback matters more than the photograph here. A large share of any real
+ * The fallback matters more than the photograph. A large share of any real
  * family tree has no image at all - the further back you go, the more certain
  * that is - and if "no photo" renders as a grey silhouette icon, the whole tree
  * looks broken rather than simply old. So the fallback is a warm monogram that
  * belongs in the design, not an error state.
  *
- * Deceased members get a muted treatment and, from Phase 9, the grayscale
- * filter on their actual photograph. The photograph itself is never altered.
+ * The URL is resolved here rather than passed in. Every avatar shares one
+ * cached lookup, so a list of forty relatives makes a single request, and no
+ * component in between needs to know photographs exist at all.
  */
 export function MemberAvatar({
   displayName,
   livingStatus,
+  memberId,
   photoUrl,
   size = 'md',
   className,
 }: MemberAvatarProps) {
+  const { family } = useCurrentFamily();
+  const { data: avatars } = useMemberAvatars(family.id);
+
+  const resolvedUrl = photoUrl ?? (memberId ? avatars?.[memberId] : undefined);
   const deceased = livingStatus === 'DECEASED';
 
-  if (photoUrl) {
+  if (resolvedUrl) {
     return (
       <img
-        src={photoUrl}
+        src={resolvedUrl}
         alt=""
+        loading="lazy"
         className={cn(
           'rounded-full object-cover',
           SIZES[size],
+          // Grayscale is applied in the browser. The stored photograph is never
+          // modified, so this is reversible the moment the record is corrected.
           deceased && 'photo-memoriam',
           className,
         )}

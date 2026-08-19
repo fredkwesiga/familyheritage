@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { useCurrentFamily } from '@/features/families/family-context';
 import { MarkDeceasedDialog } from '@/features/members/mark-deceased-dialog';
 import { MemberAvatar } from '@/features/members/member-avatar';
+import { MemberPhotos } from '@/features/photos/member-photos';
 import {
   AddRelativeDialog,
   type RelationKind,
@@ -81,6 +82,7 @@ export function MemberProfilePage() {
           serif, the life dates immediately beneath. */}
       <header className="flex flex-col items-start gap-6 sm:flex-row sm:items-center">
         <MemberAvatar
+          memberId={member.id}
           displayName={member.displayName}
           livingStatus={member.livingStatus}
           size="xl"
@@ -140,11 +142,15 @@ export function MemberProfilePage() {
       )}
 
       <section className="border-t border-border/60 pt-8">
-
-       <section className="max-w-md border-t border-border/60 pt-8">
-        <RelationshipFinder anchor={member} />
+        <MemberPhotos member={member} />
       </section>
-      
+
+      <section className="border-t border-border/60 pt-8">
+
+        <section className="max-w-md border-t border-border/60 pt-8">
+          <RelationshipFinder anchor={member} />
+        </section>
+
         <RelationsSection
           relations={relations}
           isPending={relationsPending}

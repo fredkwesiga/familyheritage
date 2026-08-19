@@ -11,6 +11,7 @@ import { HealthModule } from './health/health.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { MembersModule } from './members/members.module';
 import { RelationshipsModule } from './relationships/relationships.module';
+import { PhotosModule } from './photos/photos.module';
 
 /**
  * Root module.
@@ -38,6 +39,7 @@ import { RelationshipsModule } from './relationships/relationships.module';
     FamiliesModule,
     MembersModule,
     RelationshipsModule,
+    PhotosModule,
     HealthModule,
   ],
   providers: [
