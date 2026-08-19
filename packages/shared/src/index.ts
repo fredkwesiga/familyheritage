@@ -10,3 +10,4 @@ export * from './kinship.js';
 export * from './kinship-labels.js';
 export * from './tree.js';
 export * from './photo.js';
+export * from './story.js';

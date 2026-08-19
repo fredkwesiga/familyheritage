@@ -12,6 +12,7 @@ import { PrismaModule } from './prisma/prisma.module';
 import { MembersModule } from './members/members.module';
 import { RelationshipsModule } from './relationships/relationships.module';
 import { PhotosModule } from './photos/photos.module';
+import { StoriesModule } from './stories/stories.module';
 
 /**
  * Root module.
@@ -40,11 +41,13 @@ import { PhotosModule } from './photos/photos.module';
     MembersModule,
     RelationshipsModule,
     PhotosModule,
+    StoriesModule,
     HealthModule,
+
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },
     { provide: APP_GUARD, useClass: AuthGuard },
   ],
 })
-export class AppModule {}
+export class AppModule { }

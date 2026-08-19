@@ -21,6 +21,10 @@ import { MemberNewPage } from '@/pages/family/member-new-page';
 import { MemberProfilePage } from '@/pages/family/member-profile-page';
 import { MembersPage } from '@/pages/family/members-page';
 import { TreePage } from '@/pages/family/tree-page';
+import { StoriesPage } from '@/pages/family/stories-page';
+import { StoryEditPage } from '@/pages/family/story-edit-page';
+import { StoryNewPage } from '@/pages/family/story-new-page';
+import { StoryPage } from '@/pages/family/story-page';
 
 /**
  * Four groups of routes:
@@ -82,6 +86,11 @@ export const router = createBrowserRouter([
           { path: 'access', element: <FamilyAccessPage /> },
           { path: 'tree', element: <TreePage /> },
           { path: 'members', element: <MembersPage /> },
+          { path: 'stories', element: <StoriesPage /> },
+          { path: 'stories/new', element: <StoryNewPage /> },
+          { path: 'stories/:storyId', element: <StoryPage /> },
+          { path: 'stories/:storyId/edit', element: <StoryEditPage /> },
+          { path: 'access', element: <FamilyAccessPage /> },
         ],
       },
     ],

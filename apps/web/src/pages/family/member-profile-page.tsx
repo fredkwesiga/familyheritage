@@ -7,6 +7,7 @@ import { useCurrentFamily } from '@/features/families/family-context';
 import { MarkDeceasedDialog } from '@/features/members/mark-deceased-dialog';
 import { MemberAvatar } from '@/features/members/member-avatar';
 import { MemberPhotos } from '@/features/photos/member-photos';
+import { MemberStories } from '@/features/stories/member-stories';
 import {
   AddRelativeDialog,
   type RelationKind,
@@ -103,6 +104,7 @@ export function MemberProfilePage() {
       </header>
 
       <RelationshipToYou member={member} />
+
       {member.isRedacted && (
         <div className="flex items-start gap-3 rounded-xl border border-border bg-secondary/50 p-4">
           <EyeOff aria-hidden className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
@@ -142,15 +144,18 @@ export function MemberProfilePage() {
       )}
 
       <section className="border-t border-border/60 pt-8">
-        <MemberPhotos member={member} />
+        <MemberStories member={member} />
       </section>
 
       <section className="border-t border-border/60 pt-8">
+        <MemberPhotos member={member} />
+      </section>
 
-        <section className="max-w-md border-t border-border/60 pt-8">
-          <RelationshipFinder anchor={member} />
-        </section>
+      <section className="max-w-md border-t border-border/60 pt-8">
+        <RelationshipFinder anchor={member} />
+      </section>
 
+      <section className="border-t border-border/60 pt-8">
         <RelationsSection
           relations={relations}
           isPending={relationsPending}
@@ -159,10 +164,6 @@ export function MemberProfilePage() {
       </section>
 
       <section className="space-y-4 border-t border-border/60 pt-8">
-        <p className="text-sm text-muted-foreground">
-          The visual family tree arrives in Phase 8.
-        </p>
-
         <div className="flex flex-wrap gap-3">
           {canEdit && (
             <Button asChild variant="outline">
