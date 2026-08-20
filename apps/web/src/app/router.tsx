@@ -25,6 +25,7 @@ import { StoriesPage } from '@/pages/family/stories-page';
 import { StoryEditPage } from '@/pages/family/story-edit-page';
 import { StoryNewPage } from '@/pages/family/story-new-page';
 import { StoryPage } from '@/pages/family/story-page';
+import { OnboardingPage } from '@/pages/family/onboarding-page';
 
 /**
  * Four groups of routes:
@@ -91,6 +92,8 @@ export const router = createBrowserRouter([
           { path: 'stories/:storyId', element: <StoryPage /> },
           { path: 'stories/:storyId/edit', element: <StoryEditPage /> },
           { path: 'access', element: <FamilyAccessPage /> },
+          { path: 'start', element: <OnboardingPage /> },
+          { path: 'tree', element: <TreePage /> },
         ],
       },
     ],

@@ -1,7 +1,9 @@
 import { Link } from 'react-router-dom';
 import { Users } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { Permission } from '@fh/shared';
 import { useCurrentFamily } from '@/features/families/family-context';
+import { OnboardingInvitation } from './onboarding-page';
 
 export function FamilyHomePage() {
   const { family, can } = useCurrentFamily();
@@ -19,19 +21,26 @@ export function FamilyHomePage() {
         )}
       </section>
 
-      <section className="rounded-xl border border-dashed border-border bg-card/50 p-8 text-center">
-        <Users aria-hidden className="mx-auto size-8 text-muted-foreground" />
-        <h2 className="mt-4 font-serif text-xl tracking-tight">
-          {family.memberCount === 0
-            ? 'No relatives recorded yet'
-            : `${family.memberCount} relatives recorded`}
-        </h2>
-        <p className="mx-auto mt-2 max-w-md text-muted-foreground text-pretty">
-          {can(Permission.MEMBER_CREATE)
-            ? 'Adding people, drawing the tree, and writing their stories comes next — in Phase 5.'
-            : 'Your role lets you read this family record. Ask an admin if you need to add to it.'}
-        </p>
-      </section>
+      {family.memberCount === 0 && can(Permission.MEMBER_CREATE) ? (
+        <OnboardingInvitation familyId={family.id} />
+      ) : (
+        <section className="rounded-xl border border-dashed border-border bg-card/50 p-8 text-center">
+          <Users aria-hidden className="mx-auto size-8 text-muted-foreground" />
+          <h2 className="mt-4 font-serif text-xl tracking-tight">
+            {family.memberCount === 0
+              ? 'No relatives recorded yet'
+              : `${family.memberCount} relatives recorded`}
+          </h2>
+          <p className="mx-auto mt-2 max-w-md text-muted-foreground text-pretty">
+            {can(Permission.MEMBER_CREATE)
+              ? 'Start with anyone — yourself, a parent, a grandparent. A name is enough.'
+              : 'Your role lets you read this family record. Ask an admin if you need to add to it.'}
+          </p>
+          <Button asChild className="mt-6" variant="outline">
+            <Link to={`/f/${family.id}/members`}>View relatives</Link>
+          </Button>
+        </section>
+      )}
 
       <section className="flex flex-wrap gap-x-8 gap-y-2 border-t border-border/60 pt-6 text-sm text-muted-foreground">
         <span>

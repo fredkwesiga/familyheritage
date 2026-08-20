@@ -30,7 +30,9 @@ export function CreateFamilyPage() {
     setFormError('');
     try {
       const family = await createFamily.mutateAsync(values);
-      void navigate(`/f/${family.id}`, { replace: true });
+            // Straight into the guided start rather than an empty overview: the
+      // moment after naming a family is when someone is most willing to add to it.
+      void navigate(`/f/${family.id}/start`, { replace: true });
     } catch (error) {
       setFormError(applyApiError(error, setError));
     }
