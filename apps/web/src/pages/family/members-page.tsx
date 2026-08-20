@@ -5,6 +5,7 @@ import { Permission } from '@fh/shared';
 import { Button } from '@/components/ui/button';
 import { useCurrentFamily } from '@/features/families/family-context';
 import { MemberCard } from '@/features/members/member-card';
+import { MemberSearch } from '@/features/members/member-search';
 import { useMembers } from '@/features/members/use-members';
 
 export function MembersPage() {
@@ -76,6 +77,10 @@ export function MembersPage() {
           )}
         </div>
       </header>
+
+      {/* Search only earns its place once a list stops being scannable. Below
+          that, it is a control asking to be ignored. */}
+      {(data?.total ?? 0) > 8 && <MemberSearch />}
 
       <ul className="grid gap-3 sm:grid-cols-2">
         {members.map((member) => (

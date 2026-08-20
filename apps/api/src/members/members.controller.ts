@@ -19,6 +19,7 @@ import {
   markDeceasedInputSchema,
   setLivingStatusInputSchema,
   updateMemberInputSchema,
+  memberSearchQuerySchema,
   type CreateMemberInput,
   type MarkDeceasedInput,
   type MemberListResponse,
@@ -26,6 +27,7 @@ import {
   type OkResponse,
   type SetLivingStatusInput,
   type UpdateMemberInput,
+  type MemberSearchResponse,
 } from '@fh/shared';
 import type { AuthenticatedUser } from '../auth/auth.types';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
@@ -73,6 +75,28 @@ export class MembersController {
   ): Promise<MemberResponse> {
     const member = await this.members.create(context, body, this.actorFrom(user, request));
     return { member };
+  }
+
+    @Get('search')
+  @ApiOperation({
+    summary: 'Find someone by name',
+    description:
+      'Fuzzy by default. Matches a name at birth and an also-known-as too, because the same ' +
+      'person appears under different names in different records of the same family.',
+  })
+  async search(
+    @Query('q') q: string,
+    @Query('limit') limit: string | undefined,
+    @CurrentFamily() context: FamilyContext,
+  ): Promise<MemberSearchResponse> {
+    const parsed = memberSearchQuerySchema.safeParse({ q, limit: limit ?? 20 });
+    // A query too short to be useful is not an error - it simply has no results.
+    if (!parsed.success) return { query: q ?? '', results: [] };
+
+    return {
+      query: parsed.data.q,
+      results: await this.members.search(context, parsed.data.q, parsed.data.limit),
+    };
   }
 
   @Get(':memberId')

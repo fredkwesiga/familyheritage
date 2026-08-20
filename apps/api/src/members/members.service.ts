@@ -10,12 +10,14 @@ import {
   type MemberSummary,
   type SetLivingStatusInput,
   type UpdateMemberInput,
+  type MemberSearchResult,
 } from '@fh/shared';
 import { AuditService } from '../audit/audit.service';
 import type { ActorContext } from '../families/families.service';
 import type { FamilyContext } from '../families/family.types';
 import { PrismaService } from '../prisma/prisma.service';
 import { deriveDisplayName, toMember, toMemberSummary, type MemberRow } from './member.mapper';
+import { MemberSearchRepository } from './member-search.repository';
 
 /** Splits an ApproximateDate into the three columns it is stored as. */
 function dateColumns(prefix: 'birth' | 'death', value: ApproximateDate | null | undefined) {
@@ -32,7 +34,32 @@ export class MembersService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
-  ) {}
+    private readonly searchRepository: MemberSearchRepository,
+  ) { }
+
+  /**
+   * Fuzzy search across names.
+   *
+   * Results pass through the same mapper as every other read, so a living
+   * relative's details stay hidden from a viewer who should not see them.
+   * Search is a common way for a privacy rule to be quietly bypassed - the
+   * filtering happens somewhere else, and the search path forgets.
+   */
+  async search(
+    context: FamilyContext,
+    query: string,
+    limit: number,
+  ): Promise<MemberSearchResult[]> {
+    const hits = await this.searchRepository.search(context.familyId, query, limit);
+    const hideLiving = await this.hideLiving(context);
+
+    return hits.map((hit) => ({
+      member: toMemberSummary(hit, context, hideLiving),
+      matchedOn: hit.matchedOn,
+      score: Number(hit.score),
+    }));
+  }
+
 
   // ------------------------------------------------------------------ create
 
