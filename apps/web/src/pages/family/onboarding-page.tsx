@@ -58,13 +58,14 @@ export function OnboardingPage() {
 
   // ---- Step 1: you -------------------------------------------------------
 
-  const addSelf = async (person: { givenName: string; familyName: string }) => {
+  const addSelf = async (person: { givenName: string; familyName: string; gender: string }) => {
     setBusy(true);
     setError('');
     try {
       const member = await createMember.mutateAsync({
         givenName: person.givenName || undefined,
         familyName: person.familyName || undefined,
+        gender: person.gender || undefined,
         livingStatus: 'LIVING',
       });
       setSelfId(member.id);
@@ -85,7 +86,7 @@ export function OnboardingPage() {
 
   const addRelation = async (
     relation: AddRelativeInput['relation'],
-    person: { givenName: string; familyName: string },
+    person: { givenName: string; familyName: string; gender: string },
     which: OnboardingStep,
   ) => {
     if (!selfId) return;
@@ -97,6 +98,7 @@ export function OnboardingPage() {
         member: {
           givenName: person.givenName || undefined,
           familyName: person.familyName || undefined,
+          gender: person.gender || undefined,
           livingStatus: 'UNKNOWN',
         },
       });

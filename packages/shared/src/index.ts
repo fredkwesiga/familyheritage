@@ -12,3 +12,4 @@ export * from './tree.js';
 export * from './photo.js';
 export * from './story.js';
 export * from './search.js';
+export * from './invitation.js';

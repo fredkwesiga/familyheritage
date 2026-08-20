@@ -15,6 +15,20 @@ export const createFamilyInputSchema = z.object({
 });
 export type CreateFamilyInput = z.infer<typeof createFamilyInputSchema>;
 
+export const kinshipStyleSchema = z.enum(['WESTERN', 'CLASSIFICATORY']);
+export type KinshipStyleValue = z.infer<typeof kinshipStyleSchema>;
+
+export const KINSHIP_STYLE_LABELS: Record<KinshipStyleValue, { label: string; hint: string }> = {
+  WESTERN: {
+    label: 'Cousins and removes',
+    hint: 'Your parent\u2019s cousin is your \u201cfirst cousin once removed\u201d.',
+  },
+  CLASSIFICATORY: {
+    label: 'Uncles, aunts and siblings',
+    hint: 'Your parent\u2019s cousin is your uncle or aunt, and your cousins are your brothers and sisters.',
+  },
+};
+
 export const updateFamilyInputSchema = z
   .object({
     name: z.string().trim().min(1).max(120),
@@ -26,6 +40,8 @@ export const updateFamilyInputSchema = z
     /// Per-family AI switch. Off by default, independent of the server-side
     /// AI_ENABLED environment flag. Both must be true for AI to run.
     aiEnabled: z.boolean(),
+    /// How this family names its relatives. Changes wording only.
+    kinshipStyle: kinshipStyleSchema,
   })
   .partial()
   .refine((values) => Object.keys(values).length > 0, {
@@ -39,6 +55,7 @@ export const familySchema = z.object({
   description: z.string().nullable(),
   hideLivingFromViewers: z.boolean(),
   aiEnabled: z.boolean(),
+  kinshipStyle: kinshipStyleSchema,
   memberCount: z.number().int().nonnegative(),
   /// The role of the user who made the request. The UI uses this to decide what
   /// to render; the API never trusts it back.

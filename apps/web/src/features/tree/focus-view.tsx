@@ -82,7 +82,7 @@ export function FocusView({
         </div>
         {partners.map((partner) => (
           <div key={partner.id} className="w-44">
-            <TreeNodeCard member={partner} onSelect={onFocus} note="partner" size="sm" />
+            <TreeNodeCard member={partner} onSelect={onFocus} note={partnerWord(partner.gender)} size="sm" />
           </div>
         ))}
       </div>
@@ -138,6 +138,14 @@ export function FocusView({
       )}
     </div>
   );
+}
+
+/** "wife" and "husband" are what a family says. "Partner" is what a form says. */
+function partnerWord(gender: string | null): string {
+  const normalized = gender?.trim().toLowerCase() ?? '';
+  if (['female', 'f', 'woman', 'girl'].includes(normalized)) return 'wife';
+  if (['male', 'm', 'man', 'boy'].includes(normalized)) return 'husband';
+  return 'partner';
 }
 
 function Row({ label, children }: { label: string; children: React.ReactNode }) {

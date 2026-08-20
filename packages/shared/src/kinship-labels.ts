@@ -1,6 +1,24 @@
 import type { RelationshipKind, RelationshipResult } from './kinship.js';
 
 /**
+ * Which system of kinship terms to use.
+ *
+ * WESTERN is the anglophone convention: your parent's cousin is a "first cousin
+ * once removed", and your cousin's child is the same.
+ *
+ * CLASSIFICATORY is how a great many families actually speak, including across
+ * much of Uganda and East Africa: your parent's cousin is your uncle, your
+ * cousin's child is your niece or nephew, and your cousins are your brothers
+ * and sisters. Neither is more correct - they are different systems, and a
+ * product that only speaks one of them is telling a large share of its users
+ * that their own words for their own family are wrong.
+ *
+ * The engine is untouched by this. It returns cousin(1, 1) either way; only the
+ * word changes.
+ */
+export type KinshipStyle = 'WESTERN' | 'CLASSIFICATORY';
+
+/**
  * English kinship terms.
  *
  * Deliberately separate from the engine.
@@ -72,7 +90,22 @@ const GRANDCHILD: Gendered = {
 export function describeRelationship(
   result: RelationshipResult,
   gender?: string | null,
+  style: KinshipStyle = 'WESTERN',
 ): string {
+  // In a classificatory system the generational position decides the word, not
+  // the count of steps. Someone a generation above you is an aunt or uncle
+  // whether they are your parent's sibling or your parent's cousin.
+  if (style === 'CLASSIFICATORY' && result.kind === 'COUSIN') {
+    if (result.removed === 0) {
+      return pick(SIBLING, gender);
+    }
+    // up < down means the other person sits further from the shared ancestor,
+    // and so a generation below the reader.
+    return result.down > result.up
+      ? prefixed(result, pick(NIBLING, gender))
+      : prefixed(result, pick(AUNT_UNCLE, gender));
+  }
+
   switch (result.kind) {
     case 'SELF':
       return 'the same person';

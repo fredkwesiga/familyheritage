@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { buildFamilyGraph, computeRelationship } from '../src/kinship.js';
+import { areHalfSiblings, buildFamilyGraph, computeRelationship } from '../src/kinship.js';
 import { describeRelationship } from '../src/kinship-labels.js';
 import { kwesigaGraph, P } from './fixture.js';
+
 
 const graph = kwesigaGraph();
 
@@ -60,9 +61,10 @@ describe('siblings', () => {
     expect(rel(P.john, P.moses).commonAncestorIds).toEqual([P.peter]);
   });
 
-  it('with only one parent recorded, does not claim a full sibling', () => {
-    // Robert's father was never recorded, so nothing about him can evidence a
-    // full sibling.
+    it('does NOT claim half when only one parent is recorded for either', () => {
+    // The ordinary case for a family recording what they know: one parent
+    // entered, two children hung off them. They meant siblings, and telling
+    // them otherwise is an assertion about their family they never made.
     const solo = buildFamilyGraph({
       parentChild: [
         { parentId: 'mother', childId: 'a', relationType: 'BIOLOGICAL' },
@@ -70,7 +72,21 @@ describe('siblings', () => {
       ],
       partnerships: [],
     });
-    expect(computeRelationship(solo, 'a', 'b')).toMatchObject({ kind: 'SIBLING', half: true });
+    expect(computeRelationship(solo, 'a', 'b')).toMatchObject({ kind: 'SIBLING', half: false });
+    expect(areHalfSiblings(solo, 'a', 'b')).toBe(false);
+  });
+
+  it('claims half only when a second, different parent is on record', () => {
+    const evidenced = buildFamilyGraph({
+      parentChild: [
+        { parentId: 'dad', childId: 'a', relationType: 'BIOLOGICAL' },
+        { parentId: 'mum', childId: 'a', relationType: 'BIOLOGICAL' },
+        { parentId: 'dad', childId: 'b', relationType: 'BIOLOGICAL' },
+        { parentId: 'stepmum', childId: 'b', relationType: 'BIOLOGICAL' },
+      ],
+      partnerships: [],
+    });
+    expect(areHalfSiblings(evidenced, 'a', 'b')).toBe(true);
   });
 });
 
@@ -221,6 +237,31 @@ describe('corrupt data does not hang the engine', () => {
 
   it('handles a member who is not in the graph at all', () => {
     expect(rel(P.fred, 'nobody').kind).toBe('UNRELATED');
+  });
+});
+
+describe('kinship terminology', () => {
+  it('western: a parent’s cousin is a cousin once removed', () => {
+    expect(say(P.fred, P.david)).toBe('second cousin');
+    expect(describeRelationship(rel(P.john, P.david), 'male', 'WESTERN')).toBe(
+      'first cousin once removed',
+    );
+  });
+
+  it('classificatory: the same person is an uncle', () => {
+    // How a great many families actually speak. The engine returns the same
+    // cousin(1,1) either way - only the word changes.
+    expect(describeRelationship(rel(P.david, P.john), 'male', 'CLASSIFICATORY')).toBe('uncle');
+    expect(describeRelationship(rel(P.john, P.david), 'male', 'CLASSIFICATORY')).toBe('nephew');
+  });
+
+  it('classificatory: cousins are brothers and sisters', () => {
+    expect(describeRelationship(rel(P.fred, P.david), 'male', 'CLASSIFICATORY')).toBe('brother');
+  });
+
+  it('neither style changes the computed relationship', () => {
+    const result = rel(P.john, P.david);
+    expect(result).toMatchObject({ kind: 'COUSIN', degree: 1, removed: 1 });
   });
 });
 

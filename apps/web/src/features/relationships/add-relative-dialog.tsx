@@ -39,8 +39,9 @@ const BLURBS: Record<RelationKind, string> = {
  * how they are related is where these products lose people, because it turns a
  * memory ("my grandmother") into a data-modelling exercise.
  *
- * The form is deliberately minimal - two names and, where it matters, the kind
- * of parentage. Everything else belongs on the profile, later, if ever.
+ * The form is deliberately minimal - two names, whether they are a woman or a
+ * man, and where it matters the kind of parentage. Everything else belongs on
+ * the profile, later, if ever.
  */
 export function AddRelativeDialog({
   anchor,
@@ -61,6 +62,7 @@ export function AddRelativeDialog({
   const [givenName, setGivenName] = useState('');
   const [familyName, setFamilyName] = useState('');
   const [livingStatus, setLivingStatus] = useState<LivingStatus>('UNKNOWN');
+  const [gender, setGender] = useState('');
   const [relationType, setRelationType] = useState<ParentRelationType>('BIOLOGICAL');
   const [error, setError] = useState('');
 
@@ -73,6 +75,7 @@ export function AddRelativeDialog({
       setGivenName('');
       setFamilyName('');
       setLivingStatus('UNKNOWN');
+      setGender('');
       setRelationType('BIOLOGICAL');
       setError('');
       dialog.showModal();
@@ -97,6 +100,7 @@ export function AddRelativeDialog({
         member: {
           givenName: givenName.trim() || undefined,
           familyName: familyName.trim() || undefined,
+          gender: gender || undefined,
           livingStatus,
         },
         ...(showParentageType ? { relationType } : {}),
@@ -144,6 +148,25 @@ export function AddRelativeDialog({
             />
           </FormField>
         </div>
+
+        {/* Asked here rather than left for later, because without it the
+            product can only say "aunt or uncle" and "niece or nephew" - and a
+            family reading their own tree should see the word they would use. */}
+        <FormField
+          label="Woman or man?"
+          htmlFor="relative-gender"
+          hint="Only used to choose the right word: mother or father, aunt or uncle."
+        >
+          <Select
+            id="relative-gender"
+            value={gender}
+            onChange={(event) => setGender(event.target.value)}
+          >
+            <option value="">Not known</option>
+            <option value="female">Woman</option>
+            <option value="male">Man</option>
+          </Select>
+        </FormField>
 
         <div className="grid gap-4 sm:grid-cols-2">
           <FormField

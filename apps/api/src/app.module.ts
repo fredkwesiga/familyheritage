@@ -13,6 +13,7 @@ import { MembersModule } from './members/members.module';
 import { RelationshipsModule } from './relationships/relationships.module';
 import { PhotosModule } from './photos/photos.module';
 import { StoriesModule } from './stories/stories.module';
+import { InvitationsModule } from './invitations/invitations.module';
 
 /**
  * Root module.
@@ -42,6 +43,7 @@ import { StoriesModule } from './stories/stories.module';
     RelationshipsModule,
     PhotosModule,
     StoriesModule,
+    InvitationsModule,
     HealthModule,
 
   ],

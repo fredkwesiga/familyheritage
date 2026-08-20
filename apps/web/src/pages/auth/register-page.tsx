@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
 import { PASSWORD_MIN_LENGTH, registerInputSchema, type RegisterInput } from '@fh/shared';
 import { Button } from '@/components/ui/button';
@@ -12,8 +12,15 @@ import { useRegister } from '@/features/auth/use-auth';
 
 export function RegisterPage() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const [searchParams] = useSearchParams();
   const signUp = useRegister();
   const [formError, setFormError] = useState('');
+
+  // An invitation carries the address it was sent to, so the person never has
+  // to notice that it has to match.
+  const invitedEmail = searchParams.get('email') ?? '';
+  const returnTo = (location.state as { from?: string } | null)?.from ?? '/';
 
   const {
     register,
@@ -22,14 +29,14 @@ export function RegisterPage() {
     formState: { errors, isSubmitting },
   } = useForm<RegisterInput>({
     resolver: zodResolver(registerInputSchema),
-    defaultValues: { email: '', password: '', name: '' },
+    defaultValues: { email: invitedEmail, password: '', name: '' },
   });
 
   const onSubmit = handleSubmit(async (values) => {
     setFormError('');
     try {
       await signUp.mutateAsync(values);
-      void navigate('/', { replace: true });
+      void navigate(returnTo, { replace: true });
     } catch (error) {
       setFormError(applyApiError(error, setError));
     }

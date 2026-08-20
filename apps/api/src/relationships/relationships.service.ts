@@ -9,6 +9,7 @@ import {
   describeRelationship,
   ErrorCode,
   normalizeDate,
+  areHalfSiblings,
   type AddRelativeInput,
   type ApproximateDate,
   type CreateParentChildInput,
@@ -30,6 +31,7 @@ import { MembersService } from '../members/members.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { BLOOD_RELATION_TYPES, GraphRepository } from './graph.repository';
 import { RelationshipGraphLoader } from './relationship-graph.loader';
+
 
 function dateColumns(prefix: 'start' | 'end', value: ApproximateDate | null | undefined) {
   if (value === undefined) return {};
@@ -127,7 +129,7 @@ export class RelationshipsService {
     fromMemberId: string,
     toMemberId: string,
   ): Promise<RelationshipAnswer> {
-    const [fromRow, toRow] = await Promise.all([
+        const [fromRow, toRow] = await Promise.all([
       this.requireMemberRow(context, fromMemberId),
       this.requireMemberRow(context, toMemberId),
     ]);
@@ -136,6 +138,14 @@ export class RelationshipsService {
     const result = computeRelationship(graph, fromMemberId, toMemberId);
     const hideLiving = await this.hideLiving(context);
 
+    // The family decides the words. cousin(1,1) is the same fact either way;
+    // whether it is spoken as "first cousin once removed" or "uncle" is theirs.
+    const settings = await this.prisma.family.findFirst({
+      where: { id: context.familyId },
+      select: { kinshipStyle: true },
+      
+    });
+    
     // Names for the shared ancestors, so the answer can say WHY - "you share
     // great-grandparents, Yusuf and Amina" - rather than only asserting a term.
     const ancestorRows = result.commonAncestorIds.length
@@ -163,9 +173,12 @@ export class RelationshipsService {
       commonAncestors: ancestorRows.map((row) => toMemberSummary(row, context, hideLiving)),
       via: viaRow ? toMemberSummary(viaRow, context, hideLiving) : null,
       canonical: result.canonical,
-      label: describeRelationship(result, toRow.gender),
+      label: describeRelationship(result, toRow.gender, settings?.kinshipStyle ?? 'WESTERN'),
     };
   }
+
+  
+  
 
   // ------------------------------------------------------------ parent-child
 
@@ -554,10 +567,16 @@ export class RelationshipsService {
       byChild.set(edge.childId, entry);
     }
 
+
+    // Half is decided by the shared engine rule, not counted locally. Two
+    // places deciding this separately is how a profile ends up disagreeing
+    // with the tree about the same two people.
+    const graph = await this.graphLoader.load(context.familyId);
+
     return [...byChild.values()]
       .map(({ row, sharedParentIds }) => ({
         member: toMemberSummary(row, context, hideLiving),
-        kind: (sharedParentIds.size >= 2 ? 'FULL' : 'HALF') as 'FULL' | 'HALF',
+        kind: (areHalfSiblings(graph, memberId, row.id) ? 'HALF' : 'FULL') as 'FULL' | 'HALF',
         sharedParentIds: [...sharedParentIds],
       }))
       .sort((a, b) => a.member.displayName.localeCompare(b.member.displayName));
@@ -606,3 +625,4 @@ export class RelationshipsService {
     });
   }
 }
+

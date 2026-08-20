@@ -23,7 +23,7 @@ export interface OutboundEmail {
 export class EmailService {
   private readonly logger = new Logger(EmailService.name);
 
-  constructor(private readonly config: ConfigService<Env, true>) {}
+  constructor(private readonly config: ConfigService<Env, true>) { }
 
   async sendMagicLink(to: string, url: string): Promise<void> {
     await this.deliver({
@@ -49,6 +49,27 @@ export class EmailService {
         url,
         '',
         'If you did not request this, you can ignore this message - your password is unchanged.',
+      ].join('\n'),
+    });
+  }
+
+  async sendInvitation(
+    to: string,
+    details: { familyName: string; invitedByName: string | null; note?: string; url: string },
+  ): Promise<void> {
+    const from = details.invitedByName ?? 'Someone';
+
+    await this.deliver({
+      to,
+      subject: `${from} has added you to ${details.familyName}`,
+      body: [
+        `${from} is putting together a record of ${details.familyName} — who everyone is,`,
+        'how they are related, and the stories worth keeping. They would like you in it.',
+        ...(details.note ? ['', `They wrote: “${details.note}”`] : []),
+        '',
+        details.url,
+        '',
+        'The link works once and expires in a week.',
       ].join('\n'),
     });
   }

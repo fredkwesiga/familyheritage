@@ -15,30 +15,34 @@ import { FamiliesPage } from '@/pages/families/families-page';
 import { FamilyAccessPage } from '@/pages/family/family-access-page';
 import { FamilyHomePage } from '@/pages/family/family-home-page';
 import { FamilySettingsPage } from '@/pages/family/family-settings-page';
-import { NotFoundPage } from '@/pages/not-found-page';
 import { MemberEditPage } from '@/pages/family/member-edit-page';
 import { MemberNewPage } from '@/pages/family/member-new-page';
 import { MemberProfilePage } from '@/pages/family/member-profile-page';
 import { MembersPage } from '@/pages/family/members-page';
-import { TreePage } from '@/pages/family/tree-page';
+import { OnboardingPage } from '@/pages/family/onboarding-page';
 import { StoriesPage } from '@/pages/family/stories-page';
 import { StoryEditPage } from '@/pages/family/story-edit-page';
 import { StoryNewPage } from '@/pages/family/story-new-page';
 import { StoryPage } from '@/pages/family/story-page';
-import { OnboardingPage } from '@/pages/family/onboarding-page';
+import { TreePage } from '@/pages/family/tree-page';
+import { InvitationAcceptPage } from '@/pages/invitation-accept-page';
+import { NotFoundPage } from '@/pages/not-found-page';
 
 /**
- * Four groups of routes:
+ * Five groups of routes:
  *
  *  - signed-out only  a signed-in user is bounced to their families
  *  - callback         reachable in either state, because a link from an email
  *                     may be opened by someone already signed in
+ *  - invitation       reachable in either state, and by someone who has never
+ *                     used the product at all
  *  - account-level    protected, chrome from RootLayout, no family in scope
  *  - family-level     protected, chrome from FamilyLayout, which loads the
  *                     family once and puts it in context for everything below
  *
  * The /auth/* paths must match exactly what the API puts in its emails
- * (see AuthService.buildUrl).
+ * (see AuthService.buildUrl), and /invitations/accept must match
+ * InvitationsService.invite.
  */
 export const router = createBrowserRouter([
   {
@@ -79,24 +83,24 @@ export const router = createBrowserRouter([
         element: <FamilyLayout />,
         children: [
           { index: true, element: <FamilyHomePage /> },
-          { path: 'settings', element: <FamilySettingsPage /> },
+          { path: 'start', element: <OnboardingPage /> },
+          { path: 'tree', element: <TreePage /> },
           { path: 'members', element: <MembersPage /> },
           { path: 'members/new', element: <MemberNewPage /> },
           { path: 'members/:memberId', element: <MemberProfilePage /> },
           { path: 'members/:memberId/edit', element: <MemberEditPage /> },
-          { path: 'access', element: <FamilyAccessPage /> },
-          { path: 'tree', element: <TreePage /> },
-          { path: 'members', element: <MembersPage /> },
           { path: 'stories', element: <StoriesPage /> },
           { path: 'stories/new', element: <StoryNewPage /> },
           { path: 'stories/:storyId', element: <StoryPage /> },
           { path: 'stories/:storyId/edit', element: <StoryEditPage /> },
           { path: 'access', element: <FamilyAccessPage /> },
-          { path: 'start', element: <OnboardingPage /> },
-          { path: 'tree', element: <TreePage /> },
+          { path: 'settings', element: <FamilySettingsPage /> },
         ],
       },
     ],
   },
+  // Outside both guards: whoever opens an invitation may never have signed in,
+  // and a signed-in person may still be opening one from their inbox.
+  { path: '/invitations/accept', element: <InvitationAcceptPage /> },
   { path: '*', element: <NotFoundPage /> },
 ]);

@@ -7,6 +7,8 @@ import { Select } from '@/components/ui/select';
 import { useCurrentFamily } from '@/features/families/family-context';
 import { useChangeRole, useFamilyAccess, useRevokeAccess } from '@/features/families/use-families';
 import { ApiError } from '@/lib/api-client';
+import { InviteForm } from '@/features/invitations/invite-form';
+import { PendingInvitations } from '@/features/invitations/pending-invitations';
 
 const ASSIGNABLE: Exclude<FamilyRoleValue, 'OWNER'>[] = ['ADMIN', 'CONTRIBUTOR', 'VIEWER'];
 
@@ -59,6 +61,12 @@ export function FamilyAccessPage() {
       </header>
 
       <FormMessage>{error}</FormMessage>
+
+      {can(Permission.ACCESS_INVITE) && <InviteForm />}
+
+      <PendingInvitations canManage={can(Permission.ACCESS_INVITE)} />
+
+      <h2 className="font-serif text-lg tracking-tight">People with access</h2>
 
       <ul className="divide-y divide-border/60 rounded-xl border border-border bg-card">
         {access?.map((entry) => (
@@ -120,9 +128,6 @@ export function FamilyAccessPage() {
             </div>
           ))}
         </dl>
-        <p className="pt-2 text-sm text-muted-foreground">
-          Inviting people by email arrives in Phase 14.
-        </p>
       </section>
     </div>
   );

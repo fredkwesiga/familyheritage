@@ -82,7 +82,7 @@ export function RelationsSection({ relations, isPending, onAdd }: RelationsSecti
       </Group>
 
       <Group
-        title="Partners"
+        title="Husband, wife, or partner"
         empty="No partnerships recorded."
         onAdd={canEdit ? () => onAdd('PARTNER') : undefined}
         addLabel="Add a partner"
@@ -94,7 +94,9 @@ export function RelationsSection({ relations, isPending, onAdd }: RelationsSecti
               key={link.linkId}
               member={link.member}
               familyId={family.id}
-              note={[PARTNERSHIP_STATUS_LABELS[link.status], when].filter(Boolean).join(' · ')}
+              note={[partnerWord(link.member.gender), PARTNERSHIP_STATUS_LABELS[link.status], when]
+                .filter(Boolean)
+                .join(' · ')}
               onRemove={
                 canEdit
                   ? () => void removePartnership(link.linkId, link.member.displayName)
@@ -152,6 +154,14 @@ export function RelationsSection({ relations, isPending, onAdd }: RelationsSecti
       </Group>
     </div>
   );
+}
+
+/** "wife" and "husband" are what a family says. "Partner" is what a form says. */
+function partnerWord(gender: string | null): string {
+  const normalized = gender?.trim().toLowerCase() ?? '';
+  if (['female', 'f', 'woman', 'girl'].includes(normalized)) return 'wife';
+  if (['male', 'm', 'man', 'boy'].includes(normalized)) return 'husband';
+  return 'partner';
 }
 
 function Group({

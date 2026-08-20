@@ -3,16 +3,18 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Loader2, Lock, Sparkles } from 'lucide-react';
 import { z } from 'zod';
-import { Permission } from '@fh/shared';
+import { KINSHIP_STYLE_LABELS, Permission, type KinshipStyleValue } from '@fh/shared';
 import { Button } from '@/components/ui/button';
 import { FormField, FormMessage } from '@/components/ui/form-field';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { applyApiError } from '@/features/auth/form-errors';
 import { useCurrentFamily } from '@/features/families/family-context';
 import { useUpdateFamily } from '@/features/families/use-families';
+import { Users } from 'lucide-react';
 
 const detailsSchema = z.object({
   name: z.string().trim().min(1, 'Give your family a name').max(120),
@@ -56,6 +58,16 @@ export function FamilySettingsPage() {
       setFormError(applyApiError(error, setError));
     }
   });
+
+    const setKinshipStyle = async (value: KinshipStyleValue) => {
+    setFormError('');
+    try {
+      await updateFamily.mutateAsync({ kinshipStyle: value });
+    } catch (error) {
+      setFormError(applyApiError(error, setError));
+    }
+  };
+
 
   const toggle = async (field: 'hideLivingFromViewers' | 'aiEnabled', value: boolean) => {
     setFormError('');
@@ -135,6 +147,45 @@ export function FamilySettingsPage() {
           onChange={(value) => void toggle('hideLivingFromViewers', value)}
         />
       </section>
+
+
+          <section className="space-y-5 border-t border-border/60 pt-10">
+        <h2 className="font-serif text-xl tracking-tight">How you name relatives</h2>
+
+        <div className="space-y-4 rounded-xl border border-border bg-card p-5">
+          <div className="flex items-start gap-2">
+            <Users aria-hidden className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+            <p className="text-sm leading-relaxed text-muted-foreground text-pretty">
+              Families do not all use the same words. In much of Uganda and East Africa your
+              parent's cousin is simply your uncle, and your cousins are your brothers and
+              sisters. Neither way is more correct, and this changes nothing about the tree
+              itself — only the words used to describe it.
+            </p>
+          </div>
+
+          <FormField
+            label="Words for relatives"
+            htmlFor="kinship-style"
+            hint={KINSHIP_STYLE_LABELS[family.kinshipStyle].hint}
+          >
+            <Select
+              id="kinship-style"
+              value={family.kinshipStyle}
+              disabled={!editable || updateFamily.isPending}
+              onChange={(event) =>
+                void setKinshipStyle(event.target.value as KinshipStyleValue)
+              }
+            >
+              {Object.entries(KINSHIP_STYLE_LABELS).map(([value, { label }]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </Select>
+          </FormField>
+        </div>
+      </section>
+      
 
       <section className="space-y-5 border-t border-border/60 pt-10">
         <h2 className="font-serif text-xl tracking-tight">AI assistance</h2>

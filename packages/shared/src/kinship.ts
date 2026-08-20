@@ -147,6 +147,38 @@ export function ancestorDepths(graph: FamilyGraph, memberId: string): Map<string
   return depths;
 }
 
+/**
+ * Are these two half-siblings?
+ *
+ * Only when there is positive evidence of a difference: they share exactly one
+ * parent, AND at least one of them has a second parent recorded who is not
+ * shared.
+ *
+ * An earlier version called anyone with fewer than two shared parents a
+ * half-sibling, which was wrong in the ordinary case. A family who adds two
+ * children to a single parent - because only one parent is known, which is
+ * common - meant nothing by it, and telling them their children are
+ * half-siblings is an assertion they never made about their own family.
+ *
+ * Absence of evidence is not evidence of difference. Where we cannot tell, we
+ * say sibling and leave it there.
+ */
+export function areHalfSiblings(
+  graph: FamilyGraph,
+  memberId: string,
+  otherId: string,
+): boolean {
+  const mine = bloodParentIds(graph, memberId);
+  const theirs = bloodParentIds(graph, otherId);
+  const shared = mine.filter((id) => theirs.includes(id));
+
+  if (shared.length >= 2) return false;
+  if (shared.length === 0) return false;
+
+  // One shared parent. Half only if someone has a second, different one.
+  return mine.length >= 2 || theirs.length >= 2;
+}
+
 function bloodParentIds(graph: FamilyGraph, memberId: string): string[] {
   return (graph.parents.get(memberId) ?? [])
     .filter((edge) => BLOOD_TYPES.has(edge.type))
@@ -248,8 +280,10 @@ export function computeRelationship(
       const sharedWithOther = bloodParentIds(graph, otherId).filter((id) =>
         bloodParentIds(graph, subjectId).includes(id),
       );
-      const half = sharedWithOther.length < 2 || shared < 2;
-      return { ...base, kind: 'SIBLING', half, canonical: half ? 'half-sibling' : 'sibling' };
+      if (up === 1 && down === 1) {
+        const half = areHalfSiblings(graph, subjectId, otherId);
+        return { ...base, kind: 'SIBLING', half, canonical: half ? 'half-sibling' : 'sibling' };
+      }
     }
 
     if (up === 1) {

@@ -86,6 +86,13 @@ enum PartnershipStatus {
   ENDED_BY_DEATH
 }
 
+/// How a family names its relatives. Wording only - the relationship engine is
+/// identical either way.
+enum KinshipStyle {
+  WESTERN
+  CLASSIFICATORY
+}
+
 /// Adoption, estrangement, illness and unacknowledged parentage are not edge
 /// cases in genealogy - they are the recurring hard cases. A family with no way
 /// to record something sensitively is forced to either lie or stay silent.
@@ -185,8 +192,9 @@ model Family {
 
   /// Plain columns rather than a settings JSONB blob: there are two of them,
   /// they are queried, and columns are type-safe. Move to JSONB if this grows.
-  hideLivingFromViewers Boolean @default(true)
-  aiEnabled             Boolean @default(false)
+  hideLivingFromViewers Boolean      @default(true)
+  aiEnabled             Boolean      @default(false)
+  kinshipStyle          KinshipStyle @default(WESTERN)
 
   /// No FK, deliberately: a Photo belongs to a Family, so an FK back would be
   /// circular and force a two-step insert. The service nulls these when the
