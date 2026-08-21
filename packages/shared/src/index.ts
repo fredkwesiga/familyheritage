@@ -13,3 +13,5 @@ export * from './photo.js';
 export * from './story.js';
 export * from './search.js';
 export * from './invitation.js';
+export * from './export.js';
+export * from './gedcom.js';

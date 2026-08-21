@@ -15,6 +15,7 @@ import { applyApiError } from '@/features/auth/form-errors';
 import { useCurrentFamily } from '@/features/families/family-context';
 import { useUpdateFamily } from '@/features/families/use-families';
 import { Users } from 'lucide-react';
+import { ExportSection } from '@/features/export/export-section';
 
 const detailsSchema = z.object({
   name: z.string().trim().min(1, 'Give your family a name').max(120),
@@ -243,6 +244,7 @@ function SettingRow({
         onCheckedChange={onChange}
         aria-describedby={`${id}-description`}
       />
+      <ExportSection />
     </div>
   );
 }

@@ -14,6 +14,7 @@ import { RelationshipsModule } from './relationships/relationships.module';
 import { PhotosModule } from './photos/photos.module';
 import { StoriesModule } from './stories/stories.module';
 import { InvitationsModule } from './invitations/invitations.module';
+import { ExportModule } from './export/export.module';
 
 /**
  * Root module.
@@ -45,6 +46,8 @@ import { InvitationsModule } from './invitations/invitations.module';
     StoriesModule,
     InvitationsModule,
     HealthModule,
+    InvitationsModule,
+    ExportModule,
 
   ],
   providers: [
