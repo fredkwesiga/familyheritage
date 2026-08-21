@@ -16,6 +16,7 @@ import { useCurrentFamily } from '@/features/families/family-context';
 import { useUpdateFamily } from '@/features/families/use-families';
 import { Users } from 'lucide-react';
 import { ExportSection } from '@/features/export/export-section';
+import { DeleteFamilySection } from '@/features/families/delete-family';
 
 const detailsSchema = z.object({
   name: z.string().trim().min(1, 'Give your family a name').max(120),
@@ -245,6 +246,8 @@ function SettingRow({
         aria-describedby={`${id}-description`}
       />
       <ExportSection />
+
+      <DeleteFamilySection />
     </div>
   );
 }

@@ -42,7 +42,26 @@ export function uploadToStorage(
   onProgress: (percent: number) => void,
 ): Promise<void> {
   return new Promise((resolve, reject) => {
+    // Cloudinary decides signed-versus-unsigned purely by whether api_key is
+    // present. If it is missing the request is treated as unsigned and rejected
+    // with a message about upload presets, which is confusing and points at the
+    // wrong thing - so the real problem is caught here instead.
+    const missing = ['api_key', 'signature', 'timestamp'].filter(
+      (key) => !target.params[key],
+    );
+    if (missing.length > 0) {
+      reject(
+        new Error(
+          `The upload was not signed correctly (missing ${missing.join(', ')}). ` +
+            'This is a server-side problem, not something you did.',
+        ),
+      );
+      return;
+    }
+
     const form = new FormData();
+    // Every signed parameter, exactly as issued. Adding, renaming or dropping
+    // any one of them invalidates the signature.
     for (const [key, value] of Object.entries(target.params)) {
       form.append(key, value);
     }
@@ -58,9 +77,24 @@ export function uploadToStorage(
     });
 
     request.addEventListener('load', () => {
-      if (request.status >= 200 && request.status < 300) resolve();
-      else reject(new Error('The upload was rejected. Try again.'));
+      if (request.status >= 200 && request.status < 300) {
+        resolve();
+        return;
+      }
+
+      // Cloudinary explains itself well when asked. Passing its own words
+      // through beats a generic failure that gives nobody anything to act on.
+      let detail = '';
+      try {
+        const parsed = JSON.parse(request.responseText) as { error?: { message?: string } };
+        detail = parsed.error?.message ?? '';
+      } catch {
+        detail = request.responseText.slice(0, 200);
+      }
+
+      reject(new Error(detail || `The upload was rejected (${request.status}).`));
     });
+
     request.addEventListener('error', () =>
       reject(new Error('The upload failed. Check your connection.')),
     );

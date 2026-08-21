@@ -46,6 +46,27 @@ export function useUpdateFamily(familyId: string) {
   });
 }
 
+
+/**
+ * Removes a whole family record.
+ *
+ * A soft delete on the server, but presented as permanent because that is how
+ * it will feel to the person doing it - and because promising recoverability we
+ * have no interface to deliver would be worse than not offering it.
+ */
+export function useDeleteFamily() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { familyId: string; confirmFamilyName: string }) =>
+      familiesApi.deleteFamily(input.familyId, input.confirmFamilyName),
+    onSuccess: () => {
+      // The family is gone from under whatever page is open, so the whole
+      // cache goes rather than a careful subset.
+      queryClient.clear();
+    },
+  });
+}
+
 export function useFamilyAccess(familyId: string) {
   return useQuery({
     queryKey: familyKeys.access(familyId),

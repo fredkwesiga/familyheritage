@@ -48,6 +48,17 @@ export async function updateFamily(
   return family;
 }
 
+
+export async function deleteFamily(familyId: string, confirmFamilyName: string): Promise<void> {
+  // The API requires the family's name in the body, and checks it against the
+  // record. The typed confirmation is a server-side rule, not a UI nicety -
+  // which is the right way round.
+  await apiRequest(`/families/${familyId}`, okResponseSchema, {
+    method: 'DELETE',
+    body: { confirmFamilyName },
+  });
+}
+
 export async function listAccess(familyId: string): Promise<FamilyAccessEntry[]> {
   const { access } = await apiRequest(`/families/${familyId}/access`, familyAccessListSchema);
   return access;
