@@ -126,7 +126,21 @@ export function describeRelationship(
     }
 
     case 'SIBLING':
-      return result.half ? `half-${pick(SIBLING, gender)}` : pick(SIBLING, gender);
+      /**
+       * No "half-".
+       *
+       * The engine still computes it, the export still carries it, and
+       * genealogy software downstream still needs it. But it does not belong in
+       * front of a family.
+       *
+       * In a household where one father has children with several mothers -
+       * which is ordinary across much of the world and the norm in a good part
+       * of Uganda - "half-brother" is an imported word that divides people who
+       * have never thought of themselves as divided. The product's job is to
+       * record who descends from whom, not to grade how much blood two people
+       * share.
+       */
+      return pick(SIBLING, gender);
 
     case 'AUNT_UNCLE':
       return prefixed(result, `${greats(result.degree)}${pick(AUNT_UNCLE, gender)}`);

@@ -43,10 +43,19 @@ describe('siblings', () => {
     expect(say(P.fred, P.miriam, 'female')).toBe('sister');
   });
 
-  it('half-siblings share one parent', () => {
+    it('half-siblings share one parent', () => {
     // John and Moses share Peter and nothing else.
     expect(rel(P.john, P.moses)).toMatchObject({ kind: 'SIBLING', half: true });
-    expect(say(P.john, P.moses, 'male')).toBe('half-brother');
+  });
+
+  it('computes half, but never says it', () => {
+    // The distinction is real and the export needs it. Showing it to a family
+    // is a different question, and the answer is no: where one father has
+    // children with several mothers, "half-brother" divides people who have
+    // never thought of themselves as divided.
+    expect(rel(P.john, P.moses).half).toBe(true);
+    expect(say(P.john, P.moses, 'male')).toBe('brother');
+    expect(say(P.john, P.moses, 'female')).toBe('sister');
   });
 
   it('is symmetric', () => {

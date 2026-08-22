@@ -99,14 +99,10 @@ export function FocusView({
       {/* --- Siblings, across ------------------------------------------- */}
       {siblingMembers.length > 0 && (
         <Row label="Brothers and sisters">
-          {siblingMembers.map(({ member, half }) => (
+          {siblingMembers.map(({ member }) => (
             <div key={member.id} className="w-40">
-              <TreeNodeCard
-                member={member}
-                onSelect={onFocus}
-                note={half ? 'half' : undefined}
-                size="sm"
-              />
+              {/* Deliberately unlabelled. See relations-section. */}
+              <TreeNodeCard member={member} onSelect={onFocus} size="sm" />
             </div>
           ))}
         </Row>

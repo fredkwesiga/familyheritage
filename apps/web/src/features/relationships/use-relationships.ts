@@ -1,7 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type {
   AddRelativeInput,
+     CreateParentChildInput,
   CreatePartnershipInput,
+
   UpdatePartnershipInput,
 } from '@fh/shared';
 import { familyKeys } from '@/features/families/api';
@@ -65,6 +67,14 @@ export function useAddRelative(familyId: string, anchorId: string) {
   const invalidate = useRelationInvalidation(familyId);
   return useMutation({
     mutationFn: (body: AddRelativeInput) => relationsApi.addRelative(familyId, anchorId, body),
+    onSuccess: invalidate,
+  });
+}
+
+export function useLinkParentChild(familyId: string) {
+  const invalidate = useRelationInvalidation(familyId);
+  return useMutation({
+    mutationFn: (body: CreateParentChildInput) => relationsApi.linkParentChild(familyId, body),
     onSuccess: invalidate,
   });
 }

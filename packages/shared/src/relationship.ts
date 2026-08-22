@@ -157,12 +157,41 @@ export const PARENT_RELATION_LABELS: Record<ParentRelationType, string> = {
   GUARDIAN: 'Guardian',
 };
 
+/**
+ * Status is recorded but not displayed.
+ *
+ * "Together" is a statement about today, and this is an archive. Couples
+ * separate, divorce, become estranged, and have children either way - none of
+ * which changes a single line of the lineage. Foregrounding the current state
+ * of a relationship makes the record feel like a status page and dates it the
+ * moment anything changes.
+ *
+ * These labels remain for editing the field, and for the export. They are not
+ * shown on a profile or in the tree; use partnershipHistory() for that.
+ */
 export const PARTNERSHIP_STATUS_LABELS: Record<PartnershipStatus, string> = {
-  ACTIVE: 'Together',
+  ACTIVE: 'Ongoing',
   SEPARATED: 'Separated',
   DIVORCED: 'Divorced',
   ENDED_BY_DEATH: 'Ended by death',
 };
+
+/**
+ * What a partnership contributes to the family record: when it began, and when
+ * it ended if it did. Both are historical facts. Neither is a status.
+ */
+export function partnershipHistory(link: {
+  start: { date: string | null; qualifier: string | null; text: string | null } | null;
+  end: { date: string | null; qualifier: string | null; text: string | null } | null;
+}): string {
+  const from = link.start?.text ?? link.start?.date?.slice(0, 4) ?? null;
+  const to = link.end?.text ?? link.end?.date?.slice(0, 4) ?? null;
+
+  if (from && to) return `${from}–${to}`;
+  if (from) return `married ${from}`;
+  if (to) return `until ${to}`;
+  return '';
+}
 
 export const PARTNERSHIP_TYPE_LABELS: Record<PartnershipType, string> = {
   MARRIAGE: 'Marriage',

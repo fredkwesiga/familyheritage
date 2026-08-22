@@ -1,10 +1,9 @@
 import { Link } from 'react-router-dom';
 import { Loader2, Plus, X } from 'lucide-react';
 import {
-  formatApproximateDate,
   formatLifeDates,
   PARENT_RELATION_LABELS,
-  PARTNERSHIP_STATUS_LABELS,
+  partnershipHistory,
   Permission,
   type MemberRelations,
   type MemberSummary,
@@ -82,21 +81,22 @@ export function RelationsSection({ relations, isPending, onAdd }: RelationsSecti
       </Group>
 
       <Group
-        title="Husband, wife, or partner"
+        title="Husband, wife or partner"
         empty="No partnerships recorded."
         onAdd={canEdit ? () => onAdd('PARTNER') : undefined}
         addLabel="Add a partner"
       >
         {relations.partners.map((link) => {
-          const when = formatApproximateDate(link.start);
+          // When it began and when it ended, if it did. No statement about
+          // where the relationship stands today: couples separate, and the
+          // lineage does not.
+          const history = partnershipHistory(link);
           return (
             <Row
               key={link.linkId}
               member={link.member}
               familyId={family.id}
-              note={[partnerWord(link.member.gender), PARTNERSHIP_STATUS_LABELS[link.status], when]
-                .filter(Boolean)
-                .join(' · ')}
+              note={[partnerWord(link.member.gender), history].filter(Boolean).join(' · ')}
               onRemove={
                 canEdit
                   ? () => void removePartnership(link.linkId, link.member.displayName)
@@ -117,14 +117,13 @@ export function RelationsSection({ relations, isPending, onAdd }: RelationsSecti
         onAdd={canEdit && canAddSibling ? () => onAdd('SIBLING') : undefined}
         addLabel="Add a sibling"
       >
+        {/* Deliberately unlabelled. The engine knows which siblings share one
+            parent and which share two, and the export carries it — but where a
+            father has children with several mothers, "half-brother" is an
+            imported word that divides people who have never thought of
+            themselves as divided. */}
         {relations.siblings.map((link) => (
-          <Row
-            key={link.member.id}
-            member={link.member}
-            familyId={family.id}
-            /* Half is stated; full is the unremarkable case and goes unlabelled. */
-            note={link.kind === 'HALF' ? 'Half' : undefined}
-          />
+          <Row key={link.member.id} member={link.member} familyId={family.id} />
         ))}
       </Group>
 
@@ -221,7 +220,7 @@ function Row({
         className="flex min-w-0 flex-1 items-center gap-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
         <MemberAvatar
-        memberId={member.id}
+          memberId={member.id}
           displayName={member.displayName}
           livingStatus={member.livingStatus}
           size="sm"
